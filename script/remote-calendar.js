@@ -525,27 +525,23 @@ var loadStream = function() {
     ajax2(text);
 };
 
-var currentIndex = 0;
 var renderTime = 0;
 
 var localImageCount = 0;
 var remoteImageCount = 0;
 
 var animate = function() {
-    if (new Date().getTime() - renderTime > 1000) {
-        currentIndex = (currentIndex+1) < 10 ? (currentIndex+1) : 0;
-        renderTime = new Date().getTime();
-    }
     if (!backgroundMode) {
         drawImage(frameView);
         localImageCount += 1;
         localCountView.innerText = "local: " + localImageCount;
-        if (remoteDownloaded) {
+        if (cameraOn && remoteDownloaded) {
             var dataURL = frameView0.toDataURL();
             ws.send("PAPER|"+playerId+"|image-data|"+dataURL);
             remoteDownloaded = false;
         }
     }
+    renderTime = new Date().getTime();
     requestAnimationFrame(animate);
 };
 
@@ -606,18 +602,6 @@ var drawImage = function(canvas) {
             ctx0.drawImage(camera, 
                 format.left-translation, format.top, 
                 format.width, format.height);
-        }
-        else {
-            ctx0.fillStyle = backgroundColor;
-            ctx0.fillRect(0, 0, 150, 300);
-
-            ctx0.fillStyle = 
-            (currentIndex % 2 == 0) && (currentIndex != 0) ? 
-            "#ff0" : "#fff";
-            ctx0.font = "75px sans-serif";
-            ctx0.textAlign = "center";
-            ctx0.textBaseline = "middle";
-            ctx0.fillText(currentIndex, 75, 75);
         }
 
         if (!remoteCameraConnected) {
