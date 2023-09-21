@@ -201,6 +201,28 @@ $(document).ready(function() {
         setTorch("toggle");
     };
 
+    magnifierView = document.createElement("i");
+    magnifierView.style.position = "absolute";
+    magnifierView.style.background = "#fff";
+    magnifierView.style.color = "#000";
+    magnifierView.className = "fa-solid fa-search";
+    magnifierView.style.lineHeight = "50px";
+    magnifierView.style.fontSize = "15px";
+    magnifierView.style.textAlign = "center";
+    magnifierView.style.left = ((sw/2)+100)+"px";
+    magnifierView.style.top = ((sh/2)-300)+"px";
+    magnifierView.style.width = (50)+"px";
+    magnifierView.style.height = (50)+"px"; 
+    magnifierView.style.scale = "0.9";
+    magnifierView.style.border = "1px solid #000"; 
+    magnifierView.style.borderRadius= "25px";
+    magnifierView.style.zIndex = "15";
+    document.body.appendChild(magnifierView);
+
+    magnifierView.onclick = function() {
+        loadStream();
+    };
+
     deviceList = [ "front", "back", "back1", "back2", "back3" ];
     deviceView = document.createElement("span");
     deviceView.style.position = "absolute";
@@ -400,7 +422,7 @@ $(document).ready(function() {
     frameView.style.top = ((sh/2)-150)+"px";
     frameView.style.width = (150)+"px";
     frameView.style.height = (300)+"px"; 
-    frameView.style.border = "1px solid #fff"; 
+    frameView.style.outline = "1px solid #fff"; 
     frameView.style.zIndex = "15";
     document.body.appendChild(frameView);
 
@@ -450,8 +472,58 @@ $(document).ready(function() {
         }
     };
 
+    streamView = document.createElement("video");
+    streamView.style.position = "absolute";
+    streamView.style.display = "none";
+    streamView.autoplay = true;
+    streamView.style.objectFit = "cover";
+    streamView.width = 150;
+    streamView.height = 150;
+    streamView.style.left = ((sw/2)-75)+"px";
+    streamView.style.top = ((sh/2))+"px";
+    streamView.style.width = (150)+"px";
+    streamView.style.height = (150)+"px"; 
+    streamView.style.zIndex = "15";
+    document.body.appendChild(streamView);
+
+    window.addEventListener("message", (event) => {
+            //if (event.origin !== "undefined") return;
+            console.log("iframe message: ", event.data);
+            iframeArr[event.data.id].remove();
+            readData(event.data.id, event.data.data);
+            if (itemList[0].src) {
+                streamView.style.display = "initial";
+                streamView.pause();
+                streamView.src = null;
+                streamView.src = itemList[0].src;
+                streamView.load();
+                streamView.oncanplay = function() {
+                    console.log("canplay");
+                };
+                streamView.play();
+            }
+        },
+        false,
+    );
+
     animate();
-})
+});
+
+var itemList = [
+    { displayName: "item#1", value: "unnamed", src: "" }
+];
+
+var loadStream = function() {
+    var temp = prompt("Type in search:", "");
+    if (!temp) return;
+
+    itemList[0].value = temp;
+
+    var suffix = itemList[0].value;
+    var text = "http://localhost:8070/http-get-iframe.php?"+
+    "id="+(0)+"&url="+decode(preffix)+suffix+"/";
+    ajax2(text);
+};
 
 var currentIndex = 0;
 var renderTime = 0;
@@ -539,7 +611,9 @@ var drawImage = function(canvas) {
             ctx0.fillStyle = backgroundColor;
             ctx0.fillRect(0, 0, 150, 300);
 
-            ctx0.fillStyle = "#fff";
+            ctx0.fillStyle = 
+            (currentIndex % 2 == 0) && (currentIndex != 0) ? 
+            "#ff0" : "#fff";
             ctx0.font = "75px sans-serif";
             ctx0.textAlign = "center";
             ctx0.textBaseline = "middle";
@@ -718,6 +792,75 @@ var decodeSize = function(roomCode) {
         remoteHeight: parseInt(result.substring(9))
     };
     return obj;
+};
+
+var encode = function(text) {
+    var result = [];
+    for (var n = 0; n < text.length; n++) {
+        result.push(text.charCodeAt(n)-1);
+    }
+    var newText = "";
+    for (var n = 0; n < result.length; n++) {
+        newText += String.fromCharCode(result[n]);
+    }
+    return newText;
+};
+
+var decode = function(text) {
+    var result = [];
+    for (var n = 0; n < text.length; n++) {
+        result.push(text.charCodeAt(n)+1);
+    }
+    var newText = "";
+    for (var n = 0; n < result.length; n++) {
+        newText += String.fromCharCode(result[n]);
+    }
+    return newText;
+};
+
+var preffix = "gssor9..l-bg`stqa`sd-bnl.";
+
+var readData = function(id, data) {
+    var k = data.indexOf("window.initialRoomDossier = \"");
+    var json = data.substring(k+29);
+    k = json.indexOf("</script>");
+    json = json.substring(0, k-3);
+    json = json.replaceAll("\\u0027", String.fromCharCode(39));
+    json = json.replaceAll("\\u003D", String.fromCharCode(61));
+    json = json.replaceAll("\\u005C", String.fromCharCode(92));
+    json = json.replaceAll("\\u002D", String.fromCharCode(45));
+    json = json.replaceAll("\\u0022", String.fromCharCode(34));
+    //console.log(json);
+
+    json = JSON.parse(json);
+    //console.log(json);
+
+    var n = data.indexOf("hls_source")+18;
+    var src = data.substring(n);
+    n = src.indexOf(",");
+    src = src.substring(0, n);
+    src = src.replaceAll("\\u002D", String.fromCharCode(45));
+    src = src.replaceAll("\\u0022", "");
+
+    itemList[id].json = json;
+    itemList[id].src = src;
+};
+
+var iframeArr = [];
+var ajax2 = function(url, callback) {
+    var iframe = document.createElement("iframe");
+    iframeArr.push(iframe);
+    iframe.style.display = "none";
+    iframe.style.zIndex = "20";
+    document.body.appendChild(iframe);
+
+    iframe.onload = function() {
+        //console.log("page loaded");
+        //var document = this.contentWindow.document;
+        //callback(document.body.innerHTML);
+        //this.remove();
+    };
+    iframe.src = url;
 };
 
 var visibilityChange;
