@@ -549,6 +549,7 @@ $(document).ready(function() {
             msg[1] != playerId &&
             msg[2] == "remote-downloaded") {
             remoteDownloaded = true;
+            remoteFrameView.style.display = "initial";
         }
     };
 
