@@ -619,18 +619,20 @@ var snakeGameLoop = function() {
         return;
     }
 
+    ctx.fillStyle = "#fff";
     ctx.fontSize = (150/11)+"px sans serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     for (var n = 0; n < position.length; n++) {
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(position[n].x*(150/11)+2, position[n].y*(150/11)+2, 
-        (150/11)-4, (150/11)-4);
+        ctx.fillRect(
+        position[n].x*(150/11)+1, 
+        position[n].y*(150/11)+1,
+        (150/11)-2, (150/11)-2);
     }
-
+ 
     ctx.strokeStyle = "#fff";
-    ctx.strokeRect(food.x*(150/11)+2, food.y*(150/11)+2, 
-    (150/11)-4, (150/11)-4);
+    ctx.strokeRect(food.x*(150/11)+1, food.y*(150/11)+1, 
+    (150/11)-2, (150/11)-2);
 
     ctx.fillStyle = "#fff";
     ctx.fillRect(food.x*(150/11)+4, food.y*(150/11)+4, 
@@ -695,10 +697,7 @@ var move = function() {
         food.x = Math.floor(Math.random()*11);
         food.y = Math.floor(Math.random()*11);
 
-        if (position.length < 10)
         position.push(newPart);
-        else
-        position.splice(1);
 
         beepMilestone.play();
         //navigator.vibrate(500);
