@@ -212,6 +212,31 @@ $(document).ready(function() {
         setTorch("toggle");
     };
 
+    toggleSnakeView = document.createElement("i");
+    toggleSnakeView.style.position = "absolute";
+    toggleSnakeView.style.background = "#fff";
+    toggleSnakeView.style.color = "#000";
+    toggleSnakeView.className = "fa-solid fa-gamepad";
+    toggleSnakeView.style.lineHeight = "50px";
+    toggleSnakeView.style.fontSize = "15px";
+    toggleSnakeView.style.textAlign = "center";
+    toggleSnakeView.style.left = ((sw/2)+100)+"px";
+    toggleSnakeView.style.top = ((sh/2)-250)+"px";
+    toggleSnakeView.style.width = (50)+"px";
+    toggleSnakeView.style.height = (50)+"px"; 
+    toggleSnakeView.style.scale = "0.9";
+    toggleSnakeView.style.border = "1px solid #000"; 
+    toggleSnakeView.style.borderRadius= "25px";
+    toggleSnakeView.style.zIndex = "15";
+    document.body.appendChild(toggleSnakeView);
+
+    toggleSnakeView.onclick = function() {
+        snakeGame = !snakeGame;
+        cameraOn = snakeGame;
+        if (snakeGame)
+        snakeGameLoop();
+    };
+
     magnifierView = document.createElement("i");
     magnifierView.style.position = "absolute";
     magnifierView.style.background = "#fff";
@@ -513,6 +538,8 @@ $(document).ready(function() {
                 remoteCountView.innerText = 
                 "remote: " + remoteImageCount;
                 var ctx = frameView1.getContext("2d");
+                ctx.fillStyle = backgroundColor;
+                ctx.fillRect(0, 0, 150, 300);
                 ctx.drawImage(img, 0, 0, 150, 300);
                 ws.send("PAPER|"+playerId+"|remote-downloaded");
             };
@@ -579,11 +606,17 @@ var position = [
 ];
 var food = { x: 0, y: 0 };
 
+var snakeGame = false;
 var renderTime = 0;
+var snakeInterval = 0;
 var snakeGameLoop = function() {
-    setInterval(function() {
+    snakeInterval = setInterval(function() {
     var ctx = snakeCanvas.getContext("2d");
     ctx.clearRect(0, 0, 150, 150);
+    if (!snakeGame) { 
+        clearInterval(snakeInterval);
+        return;
+    }
 
     ctx.fontSize = (150/11)+"px sans serif";
     ctx.textAlign = "center";
@@ -789,6 +822,7 @@ var drawImage = function(canvas) {
 
     var ctx1 = frameView1.getContext("2d");
     if (updateImage)
+    if (!remoteCameraConnected)
     ctx1.clearRect(0, 0, 150, 300);
 
     var vw_zoom = (vw/zoom);
