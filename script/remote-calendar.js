@@ -36,8 +36,10 @@ $(document).ready(function() {
 
     var size = decodeSize(roomCode);
 
+    var opacity = 1;
     camera = document.createElement("video");
     camera.style.position = "absolute";
+    camera.style.opacity = opacity;
     camera.style.objectFit = "cover";
     camera.width = sw;
     camera.height = sh;
@@ -106,6 +108,15 @@ $(document).ready(function() {
             translation = Math.floor(moveX-(sw/2));
             translation = translation < -75 ? -75 : translation;
             translation = translation > 75 ? 75 : translation;
+            zoomOffset = 
+            parseFloat(((0.5/75)*Math.abs(translation)).toFixed(1));
+            zoom = (2-zoomOffset);
+        }
+        else {
+            opacity += -(accY);
+            opacity = opacity < 0 ? 0 : opacity;
+            opacity = opacity > 1 ? 1 : opacity;
+            camera.style.opacity = opacity;
         }
     };
     onpointerup = function(e) {
@@ -254,7 +265,9 @@ $(document).ready(function() {
     };
 
     effectList = 
-    [ "split-x", "split-y", "striped x", "striped y", "striped both", "3D" ];
+    [ "split-x a", "split-x b", "split-y", "striped x", "striped y", 
+    "striped both", "remote", "3D" ];
+
     effectView = document.createElement("span");
     effectView.style.position = "absolute";
     effectView.style.background = "#fff";
@@ -276,7 +289,8 @@ $(document).ready(function() {
     document.body.appendChild(effectView);
 
     effectView.onclick = function() {
-        effect = (effect+1) < 6 ? (effect+1) : 0;
+        var limit = remoteCameraConnected ? 6 : 7;
+        effect = (effect+1) <= limit ? (effect+1) : 0;
         effectView.innerText = effectList[effect];
     };
 
@@ -413,6 +427,36 @@ $(document).ready(function() {
         hiddenElement.click();
     };
 
+    downloadMultipliedView = document.createElement("span");
+    downloadMultipliedView.style.position = "absolute";
+    downloadMultipliedView.style.background = backgroundColor;
+    downloadMultipliedView.style.background = "#fff";
+    downloadMultipliedView.style.color = "#000";
+    downloadMultipliedView.style.fontWeight = "900";
+    downloadMultipliedView.innerText = "10x";
+    downloadMultipliedView.style.lineHeight = "50px";
+    downloadMultipliedView.style.fontSize = "15px";
+    downloadMultipliedView.style.textAlign = "center";
+    downloadMultipliedView.style.fontFamily = "Khand";
+    downloadMultipliedView.style.left = ((sw/2)+100)+"px";
+    downloadMultipliedView.style.top = ((sh/2)+200)+"px";
+    downloadMultipliedView.style.width = (50)+"px";
+    downloadMultipliedView.style.height = (50)+"px"; 
+    downloadMultipliedView.style.scale = "0.9";
+    downloadMultipliedView.style.border = "1px solid #000"; 
+    downloadMultipliedView.style.borderRadius= "25px";
+    downloadMultipliedView.style.zIndex = "15";
+    document.body.appendChild(downloadMultipliedView);
+
+    downloadMultipliedView.onclick = function() {
+        var dataURL = multiplySquare();
+        var hiddenElement = document.createElement('a');
+        hiddenElement.href = dataURL;
+        hiddenElement.target = "_blank";
+        hiddenElement.download = "photo.png";
+        hiddenElement.click();
+    };
+
     frameView = document.createElement("canvas");
     frameView.style.position = "absolute";
     frameView.style.background = backgroundColor;
@@ -426,13 +470,22 @@ $(document).ready(function() {
     frameView.style.zIndex = "15";
     document.body.appendChild(frameView);
 
+    frameView.getContext("2d").
+    imageSmoothingEnabled = false;
+
     frameView0 = document.createElement("canvas");
     frameView0.width = 150;
     frameView0.height = 300;
 
+    frameView0.getContext("2d").
+    imageSmoothingEnabled = false;
+
     frameView1 = document.createElement("canvas");
     frameView1.width = 150;
     frameView1.height = 300;
+
+    frameView1.getContext("2d").
+    imageSmoothingEnabled = false;
 
     ws.onmessage = function(e) {
         var msg = e.data.split("|");
@@ -500,14 +553,188 @@ $(document).ready(function() {
                 streamView.oncanplay = function() {
                     console.log("canplay");
                 };
+                streamView.onerror = function() {
+                    console.log("error");
+                    startStream(itemList[0].value);
+                };
                 streamView.play();
             }
         },
         false,
     );
 
+    snakeCanvas = document.createElement("canvas");
+    snakeCanvas.width = 150;
+    snakeCanvas.height = 150;
+
+    snakeCanvas.getContext("2d").imageSmoothingEnabled = true;
+
+    //snakeGameLoop();
     animate();
 });
+
+var direction = { x: 0, y: 0 };
+var position = [
+    { x: 5, y: 5, id: 0 }
+];
+var food = { x: 0, y: 0 };
+
+var renderTime = 0;
+var snakeGameLoop = function() {
+    setInterval(function() {
+    var ctx = snakeCanvas.getContext("2d");
+    ctx.clearRect(0, 0, 150, 150);
+
+    ctx.fontSize = (150/11)+"px sans serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (var n = 0; n < position.length; n++) {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(position[n].x*(150/11)+2, position[n].y*(150/11)+2, 
+        (150/11)-4, (150/11)-4);
+    }
+
+    ctx.strokeStyle = "#fff";
+    ctx.strokeRect(food.x*(150/11)+2, food.y*(150/11)+2, 
+    (150/11)-4, (150/11)-4);
+
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(food.x*(150/11)+4, food.y*(150/11)+4, 
+    (150/11)-8, (150/11)-8);
+
+    move();
+    }, (1000/5));
+};
+
+var move = function() {
+    var n = 0;
+    var k = (position.length-1);
+    var newPart = { ...position[k] };
+
+    var distX = Math.abs(food.x - position[n].x);
+    var distY = Math.abs(food.y - position[n].y);
+    var mode = distX != distY ? 
+    (distX > distY ? 0 : 1) : -1;
+
+    //console.log(mode, distX, distY);
+
+    if (position[n].x > food.x)
+    direction.x = -1;
+    else if (position[n].y > food.y)
+    direction.y = -1;
+    else if (position[n].x < food.x)
+    direction.x = 1;
+    else if (position[n].y < food.y)
+    direction.y = 1;
+
+    var x = position[n].x + direction.x;
+    var y = position[n].y + direction.y;
+
+    var bodyHit = false;
+    for (var w = 0; w < position.length; w++) {
+        if (x == position[w].x && y == position[w].y)
+        bodyHit = true;
+    }
+
+    var wallHit = false;
+    if (x < 0 || y < 0 || x > 10 || y > 10) {
+        hit = true;
+    }
+
+    if (!wallHit) {
+        position[k].x = x;
+        position[k].y = y;
+    }
+
+    //console.log({ ...direction });
+
+    direction.x = 0;
+    direction.y = 0;
+
+    var end = position.splice(k, 1)[0];
+    position.unshift(end);
+
+    if (bodyHit)
+    position.splice(1);
+
+    if (position[n].x == food.x && position[n].y == food.y) {
+        food.x = Math.floor(Math.random()*11);
+        food.y = Math.floor(Math.random()*11);
+
+        if (position.length < 10)
+        position.push(newPart);
+        else
+        position.splice(1);
+
+        beepMilestone.play();
+        //navigator.vibrate(500);
+    }
+
+    //console.log(position);
+};
+
+var multiplySquare = function() {
+    var canvas = document.createElement("canvas");
+    canvas.width = (150*10);
+    canvas.height = (150*10);
+
+    var ctx = canvas.getContext("2d");
+
+    for (var y = 0; y < 10; y++) {
+        var even = (y % 2) == 0;
+        if (even)
+        for (var x = 0; x < 5; x++) {
+            ctx.drawImage(frameView0, 
+            0, 0, 150, 150,
+            ((x*2)*150), (y*150), 150, 150);
+            ctx.drawImage(frameView1, 
+            0, 0, 150, 150,
+            (((x*2)+1)*150), (y*150), 150, 150);
+        }
+        else
+        for (var x = 0; x < 5; x++) {
+            ctx.drawImage(frameView1, 
+            0, 0, 150, 150,
+            ((x*2)*150), (y*150), 150, 150);
+            ctx.drawImage(frameView0, 
+            0, 0, 150, 150,
+            (((x*2)+1)*150), (y*150), 150, 150);
+        }
+    }
+
+    return canvas.toDataURL();
+};
+
+var jpg_preffix = 
+"gssor9..baiodf-rsqd`l-ghfgvdaldch`-bnl.rsqd`l>qnnl<";
+
+var startStream = function(suffix) {
+    remoteCameraConnected = true;
+    var rnd = Math.random();
+    var img = document.createElement("img");
+    img.crossOrigin = "anonymous";
+    img.suffix = suffix;
+    img.onload = function() {
+        remoteImageCount += 1;
+        remoteCountView.innerText = 
+        "remote: " + remoteImageCount;
+
+        var frame = {
+            width: 150,
+            height: ((effect == 0) ? 150 : 300)
+        };
+        var format = fitImageCover(this, frame);
+
+        var ctx = frameView1.getContext("2d");
+        ctx.drawImage(this, 
+            format.left, format.top, 
+            format.width, format.height);
+
+        startStream(this.suffix);
+    };
+    var url = decode(jpg_preffix)+suffix+"&rnd="+rnd;
+    img.src = url;
+};
 
 var itemList = [
     { displayName: "item#1", value: "unnamed", src: "" }
@@ -550,17 +777,18 @@ var remoteDownloaded = true;
 var translation = 0;
 var updateImage = true;
 var resolution = 1;
-var zoom = 1.5;
+var zoom = 2;
 var drawImage = function(canvas) {
     var ctx = canvas.getContext("2d");
     if (updateImage)
     ctx.clearRect(0, 0, 150, 300);
 
     var ctx0 = frameView0.getContext("2d");
+    if (updateImage)
     ctx0.clearRect(0, 0, 150, 300);
 
     var ctx1 = frameView1.getContext("2d");
-    if (!remoteCameraConnected)
+    if (updateImage)
     ctx1.clearRect(0, 0, 150, 300);
 
     var vw_zoom = (vw/zoom);
@@ -604,10 +832,19 @@ var drawImage = function(canvas) {
                 format.width, format.height);
         }
 
+        ctx0.drawImage(snakeCanvas, 0, 0, 150, 150);
+
         if (!remoteCameraConnected) {
-            ctx1.drawImage(camera, 
-                format.left+translation, format.top, 
-                format.width, format.height);
+            if (effect == 0) {
+                ctx1.drawImage(camera, 
+                    format.left+translation, (format.top-150),
+                    format.width, format.height);
+            }
+            else {
+                ctx1.drawImage(camera, 
+                    format.left+translation, format.top, 
+                    format.width, format.height);
+            }
         }
 
         switch (effect) {
@@ -615,18 +852,24 @@ var drawImage = function(canvas) {
                 splitscreen(ctx);
                 break;
             case 1:
-                splitscreenY(ctx);
+                splitscreen(ctx);
                 break;
             case 2:
-                interleaved(ctx);
+                splitscreenY(ctx);
                 break;
             case 3:
-                interleavedY(ctx);
+                interleaved(ctx);
                 break;
             case 4:
-                interleavedMax(ctx);
+                interleavedY(ctx);
                 break;
             case 5:
+                interleavedMax(ctx);
+                break;
+            case 6:
+                ctx.drawImage(frameView1, 0, 0, 150, 300);
+                break;
+            case 7:
                 anaglyph(ctx, ctx0, ctx1);
                 break;
         }
@@ -725,6 +968,30 @@ var anaglyph = function(ctx, ctx0, ctx1) {
     var newArray = new Uint8ClampedArray(imageArray);
     for (var n = 0; n < imageArray.length; n += 4) {
         newArray[n] = leftArray[n]; // red
+        newArray[n+1] = imageArray[n+1]; // green
+        newArray[n+2] = rightArray[n+2]; // blue
+        newArray[n+3] = 255;
+    };
+
+    var newImageData = new ImageData(newArray, 
+    imageData.width, imageData.height);
+
+    ctx.putImageData(newImageData, 0, 0);
+};
+
+var selectColor = function(ctx, ctx0, ctx1) {
+    var imageData = ctx.getImageData(0, 0, 150, 300);
+    var imageArray = imageData.data;
+
+    var leftImageData = ctx1.getImageData(0, 0, 150, 300);
+    var leftArray = leftImageData.data;
+
+    var rightImageData = ctx1.getImageData(0, 0, 150, 300);
+    var rightArray = rightImageData.data;
+
+    var newArray = new Uint8ClampedArray(imageArray);
+    for (var n = 0; n < imageArray.length; n += 4) {
+        newArray[n] = rightArray[n]; // red
         newArray[n+1] = imageArray[n+1]; // green
         newArray[n+2] = rightArray[n+2]; // blue
         newArray[n+3] = 255;
