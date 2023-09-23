@@ -606,6 +606,7 @@ $(document).ready(function() {
                     console.log("canplay");
                 };
                 streamView.onerror = function() {
+                    streamEnabled = true;
                     console.log("error");
                     startStream(itemList[0].value);
                 };
@@ -658,6 +659,7 @@ var position = [
 ];
 var food = { x: 0, y: 0 };
 
+var snakeColor = "#fff";
 var manual = false;
 var snakeGame = false;
 var renderTime = 0;
@@ -671,10 +673,8 @@ var snakeGameLoop = function() {
         return;
     }
 
-    if (deviceOpen)
+    if (!streamEnabled)
     snakeColor = getColor();
-    else
-    snakeColor = "#fff";
 
     ctx.save();
     if (deviceNo == 0) {
@@ -826,13 +826,16 @@ var select = function(n) {
     count = list[Math.floor(Math.random()*2)];
 };
 
-var getColor = function() {
-    var canvas = document.createElement("canvas");
-    canvas.width = 150;
-    canvas.height = 300;
+var getColor = function(canvas=false) {
+    if (!canvas) {
+        var canvas = document.createElement("canvas");
+        canvas.width = 150;
+        canvas.height = 300;
+    }
 
+    var returning = canvas || deviceOpen;
     var ctx = canvas.getContext("2d");
-    if (cameraOn) {
+    if (deviceOpen) {
         ctx.save();
         if (deviceNo == 0) {
             ctx.scale(-1, 1);
@@ -851,7 +854,7 @@ var getColor = function() {
     imageArray[2]+", "+
     "1)";
 
-    return result;
+    return returning ? result : "#fff";
 };
 
 var multiplySquare = function() {
@@ -886,6 +889,8 @@ var multiplySquare = function() {
     return canvas.toDataURL();
 };
 
+var streamEnabled = true;
+var streamColor = "#000";
 var jpg_preffix = 
 "gssor9..baiodf-rsqd`l-ghfgvdaldch`-bnl.rsqd`l>qnnl<";
 
@@ -910,6 +915,16 @@ var startStream = function(suffix) {
         ctx.drawImage(this, 
             format.left, format.top, 
             format.width, format.height);
+
+        var canvas = document.createElement("canvas");
+        canvas.width = 150;
+        canvas.width = 300;
+
+        var ctx = canvas.getContext("2d");
+        ctx.drawImage(this, 
+            -(this.width-150), 0, 150, 300);
+
+        streamColor = getColor(canvas);
 
         startStream(this.suffix);
     };
