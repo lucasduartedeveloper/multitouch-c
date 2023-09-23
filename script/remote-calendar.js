@@ -649,9 +649,101 @@ $(document).ready(function() {
         (gyro.accY > 5 ? -1 : 0)) : 0;
     };
 
+    waveView = document.createElement("canvas");
+    waveView.style.position = "absolute";
+    waveView.style.background = backgroundColor;
+    waveView.width = sw;
+    waveView.height = 50;
+    waveView.style.left = ((sw/2)-(sw/2))+"px";
+    waveView.style.top = ((sh/2)+150)+"px";
+    waveView.style.width = (sw)+"px";
+    waveView.style.height = (50)+"px"; 
+    waveView.style.outline = "1px solid #fff"; 
+    waveView.style.zIndex = "15";
+    document.body.appendChild(waveView);
+
+    var startTime = new Date().getTime();
+    mic = new EasyMicrophone();
+    mic.onsuccess = function() { };
+    mic.onupdate = function(freqArray, reachedFreq, avgValue) {
+        var value = parseFloat(avgValue.toFixed(2));
+        var resumedWave = resumeWave(freqArray);
+        drawAB(resumedWave, avgValue);
+    };
+    mic.onclose = function() { };
+    var ab = new Array(50);
+    for (var n = 0; n < 50; n++) {
+        ab[n] = 0;
+    }
+    drawAB(ab);
+    mic.open(true);
+
     //snakeGameLoop();
     animate();
 });
+
+var resumeWave = function(freqArray) {
+    var blocks = 50;
+    var blockSize = Math.floor(freqArray.length / blocks);
+
+    var resumedArray = [];
+    var sum = 0;
+    for (var n = 0; n < blocks; n++) {
+        sum = 0;
+        for (var k = 0; k < blockSize; k++) {
+            var m = (n * blockSize) + k;
+             if ((m+1) <= freqArray.length) {
+                 sum += freqArray[m];
+             }
+        }
+
+        resumedArray.push(sum/blockSize);
+    }
+    //console.log(blockSize);
+    //console.log(resumedArray);
+
+    return resumedArray;
+};
+
+var drawAB = 
+function(freqArray=false, avgValue=0) {
+
+    var canvas = waveView;
+    var ctx = canvas.getContext("2d");
+
+    var offset = 0;
+    var polygon = [];
+
+    // create waveform A
+    if (freqArray) 
+    offset = (canvas.width/freqArray.length)/2;
+    if (freqArray) 
+    for (var n = 0; n < freqArray.length; n++) {
+        var obj = {
+            x: offset+(n*(canvas.width/freqArray.length)),
+            y0: (25)+
+            (-freqArray[n]*25),
+            y1: (25)+
+            (freqArray[n]*25)
+        };
+        polygon.push(obj);
+    }
+
+    // draw waveform A
+    ctx.strokeStyle = "#fff";
+
+    if (freqArray) {
+        ctx.lineWidth = (canvas.width/freqArray.length)-2;
+        ctx.clearRect(0, 0, canvas.width, 100);
+    }
+    if (freqArray)
+    for (var n = 0; n < polygon.length; n++) {
+        ctx.beginPath();
+        ctx.moveTo(polygon[n].x, polygon[n].y0-1);
+        ctx.lineTo(polygon[n].x, polygon[n].y1+1);
+        ctx.stroke();
+    }
+};
 
 var portalA = { x: 2, y: 2 };
 var portalB = { x: 8, y: 8 };
@@ -770,6 +862,16 @@ var move = function() {
     var end = position.splice(k, 1)[0];
     position.unshift(end);
 
+    if (position[n].x == food.x && position[n].y == food.y) {
+        food.x = Math.floor(Math.random()*11);
+        food.y = Math.floor(Math.random()*11);
+
+        position.push(newPart);
+
+        beepMilestone.play();
+        //navigator.vibrate(500);
+    }
+
     for (var w = 0; w < position.length; w++) {
         if (position[w].x == portalA.x && position[w].y == portalA.y) {
             position[w].x = portalB.x;
@@ -786,16 +888,6 @@ var move = function() {
 
     if (bodyHit)
     position.splice(1);
-
-    if (position[n].x == food.x && position[n].y == food.y) {
-        food.x = Math.floor(Math.random()*11);
-        food.y = Math.floor(Math.random()*11);
-
-        position.push(newPart);
-
-        beepMilestone.play();
-        //navigator.vibrate(500);
-    }
 
     //console.log(position);
 };
@@ -1026,8 +1118,10 @@ var drawImage = function(canvas) {
         height: (vh_zoom)
     };
 
-    ctx.fillStyle = "lightblue";
-    ctx.lineWidth = 1;
+     //ctx.globalCompositeOperation = "source-in";
+     ctx.lineWidth = 1;
+     ctx.strokeStyle = "#fff";
+     ctx.fillStyle = "lightblue";
 
     if (updateImage) {
         ctx.save();
