@@ -717,6 +717,7 @@ var snakeGameLoop = function() {
     }, (1000/5));
 };
 
+var mode = 0;
 var move = function() {
     var n = 0;
     var k = (position.length-1);
@@ -724,19 +725,20 @@ var move = function() {
 
     var distX = Math.abs(food.x - position[n].x);
     var distY = Math.abs(food.y - position[n].y);
-    var mode = distX != distY ? 
-    (distX > distY ? 0 : 1) : -1;
+
+    mode = mode == 0 && distX == 0 ? 1 : mode;
+    mode = mode == 1 && distY == 0 ? 0 : mode;
 
     //console.log(mode, distX, distY);
 
     if (!manual)
-    if (position[n].x > food.x)
+    if (mode == 0 && position[n].x > food.x)
     direction.x = -1;
-    else if (position[n].y > food.y)
+    else if (mode == 1 && position[n].y > food.y)
     direction.y = -1;
-    else if (position[n].x < food.x)
+    else if (mode == 0 && position[n].x < food.x)
     direction.x = 1;
-    else if (position[n].y < food.y)
+    else if (mode == 1 && position[n].y < food.y)
     direction.y = 1;
 
     var x = position[n].x + direction.x;
@@ -772,11 +774,13 @@ var move = function() {
         if (position[w].x == portalA.x && position[w].y == portalA.y) {
             position[w].x = portalB.x;
             position[w].y = portalB.y;
+            //mode = mode == 0 ? 1 : 0;
         }
         else if (position[w].x == portalB.x && 
         position[w].y == portalB.y) {
             position[w].x = portalA.x;
             position[w].y = portalA.y;
+            //mode = mode == 0 ? 1 : 0;
         }
     }
 
