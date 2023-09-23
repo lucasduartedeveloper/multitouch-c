@@ -237,6 +237,31 @@ $(document).ready(function() {
         snakeGameLoop();
     };
 
+    toggleSpaceView = document.createElement("i");
+    toggleSpaceView.style.position = "absolute";
+    toggleSpaceView.style.background = "#fff";
+    toggleSpaceView.style.color = "#000";
+    toggleSpaceView.className = "fa-solid fa-gamepad";
+    toggleSpaceView.style.lineHeight = "50px";
+    toggleSpaceView.style.fontSize = "15px";
+    toggleSpaceView.style.textAlign = "center";
+    toggleSpaceView.style.left = ((sw/2)+100)+"px";
+    toggleSpaceView.style.top = ((sh/2)-200)+"px";
+    toggleSpaceView.style.width = (50)+"px";
+    toggleSpaceView.style.height = (50)+"px"; 
+    toggleSpaceView.style.scale = "0.9";
+    toggleSpaceView.style.border = "1px solid #000"; 
+    toggleSpaceView.style.borderRadius= "25px";
+    toggleSpaceView.style.zIndex = "15";
+    document.body.appendChild(toggleSpaceView);
+
+    toggleSpaceView.onclick = function() {
+        spaceGame = !spaceGame;
+        cameraOn = spaceGame;
+        if (spaceGame)
+        spaceGameLoop();
+    };
+
     magnifierView = document.createElement("i");
     magnifierView.style.position = "absolute";
     magnifierView.style.background = "#fff";
@@ -549,7 +574,6 @@ $(document).ready(function() {
             msg[1] != playerId &&
             msg[2] == "remote-downloaded") {
             remoteDownloaded = true;
-            remoteFrameView.style.display = "initial";
         }
     };
 
@@ -597,6 +621,33 @@ $(document).ready(function() {
 
     snakeCanvas.getContext("2d").imageSmoothingEnabled = true;
 
+    spaceCanvas = document.createElement("canvas");
+    spaceCanvas.width = 150;
+    spaceCanvas.height = 150;
+
+    frameView.onclick = function(e) {
+        if (!spaceGame) return;
+        var n = Math.floor((e.clientX-((sw/2)-75))/(150/3));
+        console.log(n);
+        select(n);
+    };
+
+    spaceCanvas.getContext("2d").imageSmoothingEnabled = true;
+
+    motion = false;
+    gyroUpdated = function(gyro) {
+        var co = gyro.accX;
+        var ca = gyro.accY;
+        var a = _angle2d(co, ca);
+        var deg = (180/Math.PI)*a;
+        direction.x = Math.abs(gyro.accX) > 5 ? 
+        (gyro.accX < -5 ? -1 : 
+        (gyro.accX > 5 ? 1 : 0)) : 0;
+        direction.y = Math.abs(gyro.accY) > 5 ? 
+        (gyro.accY < -5 ? 1 : 
+        (gyro.accY > 5 ? -1 : 0)) : 0;
+    };
+
     //snakeGameLoop();
     animate();
 });
@@ -607,6 +658,7 @@ var position = [
 ];
 var food = { x: 0, y: 0 };
 
+var manual = false;
 var snakeGame = false;
 var renderTime = 0;
 var snakeInterval = 0;
@@ -619,7 +671,18 @@ var snakeGameLoop = function() {
         return;
     }
 
-    ctx.fillStyle = "#fff";
+    if (deviceOpen)
+    snakeColor = getColor();
+    else
+    snakeColor = "#fff";
+
+    ctx.save();
+    if (deviceNo == 0) {
+        ctx.scale(-1, 1);
+        ctx.translate(-150, 0);
+    }
+
+    ctx.fillStyle = snakeColor;
     ctx.fontSize = (150/11)+"px sans serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -630,15 +693,16 @@ var snakeGameLoop = function() {
         (150/11)-2, (150/11)-2);
     }
  
-    ctx.strokeStyle = "#fff";
+    ctx.strokeStyle = snakeColor;
     ctx.strokeRect(food.x*(150/11)+1, food.y*(150/11)+1, 
     (150/11)-2, (150/11)-2);
 
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = snakeColor;
     ctx.fillRect(food.x*(150/11)+4, food.y*(150/11)+4, 
     (150/11)-8, (150/11)-8);
 
     move();
+    ctx.restore();
     }, (1000/5));
 };
 
@@ -654,6 +718,7 @@ var move = function() {
 
     //console.log(mode, distX, distY);
 
+    if (!manual)
     if (position[n].x > food.x)
     direction.x = -1;
     else if (position[n].y > food.y)
@@ -684,8 +749,10 @@ var move = function() {
 
     //console.log({ ...direction });
 
-    direction.x = 0;
-    direction.y = 0;
+    if (!manual) {
+        direction.x = 0;
+        direction.y = 0;
+    }
 
     var end = position.splice(k, 1)[0];
     position.unshift(end);
@@ -704,6 +771,87 @@ var move = function() {
     }
 
     //console.log(position);
+};
+
+var spaceColor = "orange";
+var spaceGame = false;
+var count = 0;
+var spaceInterval = 0;
+var spaceGameLoop = function() {
+    spaceInterval = setInterval(function() {
+    var ctx = spaceCanvas.getContext("2d");
+    ctx.clearRect(0, 0, 150, 150);
+    if (!spaceGame) { 
+        clearInterval(spaceInterval);
+        return;
+    }
+
+    spaceColor = getColor();
+
+    ctx.save();
+    if (deviceNo == 0) {
+        ctx.scale(-1, 1);
+        ctx.translate(-150, 0);
+    }
+
+    ctx.strokeStyle = "#000";
+    ctx.fillStyle = (count == 0 ? spaceColor : "#fff");
+    ctx.beginPath();
+    ctx.arc((150/4), (150/2), 10, 0, (Math.PI*2));
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = "#000";
+    ctx.fillStyle = (count == 1 ? spaceColor : "#fff");
+    ctx.beginPath();
+    ctx.arc(((150/4)*2), (150/2), 10, 0, (Math.PI*2));
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.strokeStyle = "#000";
+    ctx.fillStyle = (count == 2 ? spaceColor : "#fff");
+    ctx.beginPath();
+    ctx.arc(((150/4)*3), (150/2), 10, 0, (Math.PI*2));
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.restore();
+    }, (1000/5));
+};
+
+var select = function(n) {
+    var list = [ 0, 1, 2 ];
+    list.splice(count, 1);
+    if (n == count)
+    count = list[Math.floor(Math.random()*2)];
+};
+
+var getColor = function() {
+    var canvas = document.createElement("canvas");
+    canvas.width = 150;
+    canvas.height = 300;
+
+    var ctx = canvas.getContext("2d");
+    if (cameraOn) {
+        ctx.save();
+        if (deviceNo == 0) {
+            ctx.scale(-1, 1);
+            ctx.translate(-150, 0);
+        }
+        ctx.drawImage(camera, -(vw-150), 0, vw, vh);
+        ctx.restore();
+    }
+
+    var imageData = ctx.getImageData(0, 0, 150, 300);
+    var imageArray = imageData.data;
+
+    var result = "rgba("+
+    imageArray[0]+", "+
+    imageArray[1]+", "+
+    imageArray[2]+", "+
+    "1)";
+
+    return result;
 };
 
 var multiplySquare = function() {
@@ -866,7 +1014,10 @@ var drawImage = function(canvas) {
                 format.width, format.height);
         }
 
+        if (snakeGame)
         ctx0.drawImage(snakeCanvas, 0, 0, 150, 150);
+        else if (spaceGame)
+        ctx0.drawImage(spaceCanvas, 0, 0, 150, 150);
 
         if (!remoteCameraConnected) {
             if (effect == 0) {

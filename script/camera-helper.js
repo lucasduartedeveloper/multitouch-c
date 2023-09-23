@@ -3,6 +3,7 @@ var vh = 0;
 
 var cameraElem = null;
 var cameraOn = false;
+var deviceOpen = false;
 var videoDevices = [];
 var deviceNo = 0;
 
@@ -41,6 +42,7 @@ function startCamera(color=true) {
           .then((stream) => {
                console.log("camera started");
                cameraOn = true;
+               deviceOpen = true;
 
                var track = stream.getVideoTracks()[0];
                var display = track.getSettings();
@@ -139,6 +141,7 @@ function getSettings() {
 function stopCamera() {
     if (cameraElem.srcObject) {
          cameraOn = false;
+         deviceOpen = false;
          cameraElem.srcObject.getTracks().forEach(t => t.stop());
          cameraElem.srcObject = null;
     }
