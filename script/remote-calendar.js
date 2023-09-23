@@ -653,6 +653,9 @@ $(document).ready(function() {
     animate();
 });
 
+var portalA = { x: 2, y: 2 };
+var portalB = { x: 8, y: 8 };
+
 var direction = { x: 0, y: 0 };
 var position = [
     { x: 5, y: 5, id: 0 }
@@ -700,6 +703,14 @@ var snakeGameLoop = function() {
     ctx.fillStyle = snakeColor;
     ctx.fillRect(food.x*(150/11)+4, food.y*(150/11)+4, 
     (150/11)-8, (150/11)-8);
+
+    ctx.strokeStyle = "#fff";
+    ctx.strokeRect(portalA.x*(150/11)+1, portalA.y*(150/11)+1, 
+    (150/11)-2, (150/11)-2);
+
+    ctx.strokeStyle = "#fff";
+    ctx.strokeRect(portalB.x*(150/11)+1, portalB.y*(150/11)+1, 
+    (150/11)-2, (150/11)-2);
 
     move();
     ctx.restore();
@@ -756,6 +767,18 @@ var move = function() {
 
     var end = position.splice(k, 1)[0];
     position.unshift(end);
+
+    for (var w = 0; w < position.length; w++) {
+        if (position[w].x == portalA.x && position[w].y == portalA.y) {
+            position[w].x = portalB.x;
+            position[w].y = portalB.y;
+        }
+        else if (position[w].x == portalB.x && 
+        position[w].y == portalB.y) {
+            position[w].x = portalA.x;
+            position[w].y = portalA.y;
+        }
+    }
 
     if (bodyHit)
     position.splice(1);
