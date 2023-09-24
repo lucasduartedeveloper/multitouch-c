@@ -1,3 +1,5 @@
+var roboticSfx = new Audio("audio/robotic-sfx.wav");
+
 var beepDone = new Audio("audio/beep-done.wav");
 var beepMilestone = new Audio("audio/beep-milestone.wav");
 
@@ -210,6 +212,32 @@ $(document).ready(function() {
 
     toggleTorchView.onclick = function() {
         setTorch("toggle");
+    };
+
+    toggleUpView = document.createElement("i");
+    toggleUpView.style.position = "absolute";
+    toggleUpView.style.background = "#fff";
+    toggleUpView.style.color = "#000";
+    toggleUpView.className = "fa-solid fa-arrow-up-long";
+    toggleUpView.style.lineHeight = "100px";
+    toggleUpView.style.fontSize = "15px";
+    toggleUpView.style.textAlign = "center";
+    toggleUpView.style.left = ((sw/2)-25)+"px";
+    toggleUpView.style.top = ((sh/2)-50)+"px";
+    toggleUpView.style.width = (50)+"px";
+    toggleUpView.style.height = (100)+"px"; 
+    toggleUpView.style.scale = "0.9";
+    toggleUpView.style.border = "1px solid #000"; 
+    //toggleUpView.style.borderRadius= "25px";
+    toggleUpView.style.zIndex = "20";
+    document.body.appendChild(toggleUpView);
+
+    toggleUpView.onclick = function() {
+        frameView.style.display = "initial";
+        frameView.className = 
+        "animate__animated animate__slideInUp";
+        toggleUpView.style.display = "none";
+        roboticSfx.play();
     };
 
     toggleSnakeView = document.createElement("i");
@@ -509,6 +537,7 @@ $(document).ready(function() {
 
     frameView = document.createElement("canvas");
     frameView.style.position = "absolute";
+    frameView.style.display = "none";
     frameView.style.background = backgroundColor;
     frameView.width = 150;
     frameView.height = 300;
@@ -651,14 +680,13 @@ $(document).ready(function() {
 
     waveView = document.createElement("canvas");
     waveView.style.position = "absolute";
-    waveView.style.background = backgroundColor;
+    waveView.style.display = "none";
     waveView.width = sw;
     waveView.height = 50;
     waveView.style.left = ((sw/2)-(sw/2))+"px";
     waveView.style.top = ((sh/2)+150)+"px";
     waveView.style.width = (sw)+"px";
     waveView.style.height = (50)+"px"; 
-    waveView.style.outline = "1px solid #fff"; 
     waveView.style.zIndex = "15";
     document.body.appendChild(waveView);
 
@@ -667,6 +695,7 @@ $(document).ready(function() {
     mic.onsuccess = function() { };
     mic.onupdate = function(freqArray, reachedFreq, avgValue) {
         var value = parseFloat(avgValue.toFixed(2));
+        console.log(value, freqArray.length);
         var resumedWave = resumeWave(freqArray);
         drawAB(resumedWave, avgValue);
     };
@@ -676,7 +705,6 @@ $(document).ready(function() {
         ab[n] = 0;
     }
     drawAB(ab);
-    mic.open(true);
 
     //snakeGameLoop();
     animate();
