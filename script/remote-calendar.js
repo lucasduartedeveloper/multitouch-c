@@ -1,4 +1,5 @@
 var roboticSfx = new Audio("audio/robotic-sfx.wav");
+var bouncySfx = new Audio("audio/bouncy-sfx.wav");
 
 var beepDone = new Audio("audio/beep-done.wav");
 var beepMilestone = new Audio("audio/beep-milestone.wav");
@@ -236,6 +237,7 @@ $(document).ready(function() {
         frameView.style.display = "initial";
         frameView.className = 
         "animate__animated animate__slideInUp";
+        //frameView.style.animationSpeed = 0.3;
         toggleUpView.style.display = "none";
         roboticSfx.play();
     };
@@ -288,6 +290,30 @@ $(document).ready(function() {
         cameraOn = spaceGame;
         if (spaceGame)
         spaceGameLoop();
+    };
+
+    toggleRotationView = document.createElement("i");
+    toggleRotationView.style.position = "absolute";
+    toggleRotationView.style.background = "#fff";
+    toggleRotationView.style.color = "#000";
+    toggleRotationView.className = "fa-solid fa-gamepad";
+    toggleRotationView.style.lineHeight = "50px";
+    toggleRotationView.style.fontSize = "15px";
+    toggleRotationView.style.textAlign = "center";
+    toggleRotationView.style.left = ((sw/2)+100)+"px";
+    toggleRotationView.style.top = ((sh/2)-150)+"px";
+    toggleRotationView.style.width = (50)+"px";
+    toggleRotationView.style.height = (50)+"px"; 
+    toggleRotationView.style.scale = "0.9";
+    toggleRotationView.style.border = "1px solid #000"; 
+    toggleRotationView.style.borderRadius= "25px";
+    toggleRotationView.style.zIndex = "15";
+    document.body.appendChild(toggleRotationView);
+
+    toggleRotationView.onclick = function() {
+        rotationGame = !rotationGame;
+        if (rotationGame)
+        rotationGameLoop();
     };
 
     magnifierView = document.createElement("i");
@@ -344,7 +370,7 @@ $(document).ready(function() {
 
     effectList = 
     [ "split-x a", "split-x b", "split-y", "striped x", "striped y", 
-    "striped both", "remote", "3D" ];
+    "striped both", "remote", "pinch-out", "3D" ];
 
     effectView = document.createElement("span");
     effectView.style.position = "absolute";
@@ -656,10 +682,27 @@ $(document).ready(function() {
     spaceCanvas.height = 150;
 
     frameView.onclick = function(e) {
-        if (!spaceGame) return;
-        var n = Math.floor((e.clientX-((sw/2)-75))/(150/3));
-        console.log(n);
-        select(n);
+        if (spaceGame) {
+            var n = Math.floor((e.clientX-((sw/2)-75))/(150/3));
+            select(n);
+        }
+        else if (manual && snakeGame) {
+            var x = e.clientX - ((sw/2)-75);
+            var y = e.clientY - ((sh/2)-150);
+            var v = {
+                x: x-75,
+                y: y-225
+            };
+            console.log(v);
+            if (Math.abs(v.x) > Math.abs(v.y)) {
+                direction.x = v.x < 0 ? -1 : 1;
+                direction.y = 0;
+            }
+            else {
+                direction.x = 0;
+                direction.y = v.y < 0 ? -1 : 1;
+            }
+        }
     };
 
     spaceCanvas.getContext("2d").imageSmoothingEnabled = true;
@@ -872,7 +915,7 @@ var move = function() {
 
     var wallHit = false;
     if (x < 0 || y < 0 || x > 10 || y > 10) {
-        hit = true;
+        wallHit = true;
     }
 
     if (!wallHit) {
@@ -964,6 +1007,27 @@ var spaceGameLoop = function() {
 
     ctx.restore();
     }, (1000/5));
+};
+
+var rotationGame = false;
+var rotationDirection = 0;
+var rotationInterval = 0;
+var rotation = 0;
+var rotationGameLoop = function() {
+    rotationDirection = rotationDirection == 0 ? 1 : 0;
+    toggleRotationView.className = 
+    rotationDirection ? 
+    "fa-solid fa-rotate-left" : 
+    "fa-solid fa-rotate-right";
+    rotationInterval = setInterval(function() {
+        if (!rotationGame) { 
+            clearInterval(rotationInterval);
+            return;
+        }
+        rotation += rotationDirection == 0 ? 1 : -1;
+        rotation = rotation > 360 ? 0 : rotation;
+        rotation = rotation < 0 ? 360 : rotation;
+    }, (1000/30));
 };
 
 var select = function(n) {
@@ -1164,6 +1228,24 @@ var drawImage = function(canvas) {
             ctx1.translate(-150, 0);
         }
 
+        ctx.translate(75, 150);
+        ctx.rotate(rotation*(Math.PI/180));
+        ctx.translate(-75, -150);
+
+        ctx0.translate(75, 150);
+        ctx0.rotate(rotation*(Math.PI/180));
+        ctx0.translate(-75, -150);
+
+        ctx1.translate(75, 150);
+        ctx1.rotate(rotation*(Math.PI/180));
+        ctx1.translate(-75, -150);
+
+        ctx.font = "75px sans serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillRect(10, 145, 130, 10);
+        //ctx.fillText("A", 75, 150);
+
         if (cameraOn) {
             ctx.drawImage(camera, 
                 format.left, format.top, 
@@ -1196,6 +1278,11 @@ var drawImage = function(canvas) {
             }
         }
 
+        if (!cameraOn && gridEnabled) {
+            drawGrid(ctx0);
+            drawGrid(ctx1);
+        }
+
         switch (effect) {
             case 0:
                 splitscreen(ctx);
@@ -1219,12 +1306,38 @@ var drawImage = function(canvas) {
                 ctx.drawImage(frameView1, 0, 0, 150, 300);
                 break;
             case 7:
+                setShape(ctx);
+                break;
+            case 8:
                 anaglyph(ctx, ctx0, ctx1);
                 break;
         }
 
         ctx0.restore();
         ctx1.restore();
+    }
+};
+
+var gridEnabled = true;
+var drawGrid = function(ctx) {
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "lightblue";
+    ctx.fillStyle = "#fff";
+
+    ctx.fillRect(0, 0, 150, 300);
+
+    for (var n = 0; n < 31; n++) {
+        ctx.beginPath();
+        ctx.moveTo(0, (n*(150/15))+(150/30));
+        ctx.lineTo(150, (n*(150/15))+(150/30));
+        ctx.stroke();
+    }
+
+    for (var n = 0; n < 16; n++) {
+        ctx.beginPath();
+        ctx.moveTo((n*(300/30)), 0);
+        ctx.lineTo((n*(300/30)), 300);
+        ctx.stroke();
     }
 };
 
@@ -1326,6 +1439,42 @@ var anaglyph = function(ctx, ctx0, ctx1) {
     imageData.width, imageData.height);
 
     ctx.putImageData(newImageData, 0, 0);
+};
+
+var setShape = function(ctx, ctx0, ctx1) {
+    var canvas = document.createElement("canvas");
+    canvas.width = 150;
+    canvas.height = 300;
+
+    ctx.drawImage(frameView1, 0, 0, 150, 300);
+    for (var n = 0; n < 35; n++) {
+        var radius = (37.5-n);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(75, 150, radius, 0, (Math.PI*2));
+        ctx.clip();
+
+        var scale = (1+(n/10));
+        var image = {
+            width: scale*vw,
+            height: scale*vh
+        };
+        var format = fitImageCover(image, frameView1);
+        //console.log(scale, image, format);
+
+        if (!gridEnabled)
+        ctx.drawImage(camera, 
+        (vw/2)-(75/scale), (vh/2)-(75/scale),
+        (150/scale), (150/scale), 
+        0, 75, 150, 150);
+        else
+        ctx.drawImage(frameView1, 
+        75-(75/scale), 150-(75/scale),
+        (150/scale), (150/scale),
+        0, 75, 150, 150);
+
+        ctx.restore();
+    }
 };
 
 var selectColor = function(ctx, ctx0, ctx1) {
