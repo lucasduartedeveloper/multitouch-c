@@ -55,10 +55,14 @@ function startCamera(color=true) {
                console.log(capabilities);
 
                if (capabilities.zoom) {
-               focusMin = capabilities.zoom.min;
-               focusMax = capabilities.zoom.max;
-               focusStep = capabilities.zoom.step;
-               focusDistance = display.zoom;
+                   canFocus = true;
+                   focusMin = capabilities.zoom.min;
+                   focusMax = capabilities.zoom.max;
+                   focusStep = capabilities.zoom.step;
+                   focusDistance = display.zoom;
+               }
+               else {
+                   canFocus = false;
                }
 
                cameraElem.srcObject = stream;
@@ -68,6 +72,7 @@ function startCamera(color=true) {
     }
 }
 
+var canFocus = false;
 var focusMin = 0;
 var focusMax = 0;
 var focusStep = 0;

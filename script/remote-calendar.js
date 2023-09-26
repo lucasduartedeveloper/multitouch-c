@@ -108,12 +108,23 @@ $(document).ready(function() {
         var accY = (1/(sw-50))*(moveY-startY);
 
         if (Math.abs(offsetX) > Math.abs(offsetY)) {
-            translation = Math.floor(moveX-(sw/2));
-            translation = translation < -75 ? -75 : translation;
-            translation = translation > 75 ? 75 : translation;
-            zoomOffset = 
-            parseFloat(((0.5/75)*Math.abs(translation)).toFixed(1));
-            zoom = (2-zoomOffset);
+            offset = Math.floor(moveX-(sw/2));
+            if (effect < 7) {
+                translation = offset < -75 ? -75 : offset;
+                translation = offset > 75 ? 75 : offset;
+                zoomOffset = 
+                parseFloat(((0.5/75)*Math.abs(offset).toFixed(1)));
+                zoom = (3-zoomOffset);
+            }
+
+            recoilOffset = 
+            parseFloat((2/75)*Math.abs(offset).toFixed(1));
+            recoil = (3-recoilOffset);
+
+            _recoilOffset = recoil;
+
+            fillArray();
+            drawCurve();
         }
         else {
             opacity += -(accY);
@@ -393,7 +404,7 @@ $(document).ready(function() {
     document.body.appendChild(effectView);
 
     effectView.onclick = function() {
-        var limit = remoteCameraConnected ? 6 : 7;
+        var limit = remoteCameraConnected ? 7 : 8;
         effect = (effect+1) <= limit ? (effect+1) : 0;
         effectView.innerText = effectList[effect];
     };
@@ -703,6 +714,18 @@ $(document).ready(function() {
                 direction.y = v.y < 0 ? -1 : 1;
             }
         }
+        else if (canFocus && effect == 7) {
+            var offset = 75-((75/300)*(e.clientY - ((sh/2)-150)));
+            var focusTotal = focusMax - focusMin;
+            var newFocus = 
+            parseFloat(
+            (Math.abs(((1/75)*offset))*focusTotal).toFixed(1));
+            newFocus = newFocus < focusMin ? 
+            focusMin : newFocus;
+            newFocus = newFocus > focusMax ?
+            focusMax : newFocus;
+            setFocus(newFocus);
+        }
     };
 
     spaceCanvas.getContext("2d").imageSmoothingEnabled = true;
@@ -719,6 +742,10 @@ $(document).ready(function() {
         direction.y = Math.abs(gyro.accY) > 5 ? 
         (gyro.accY < -5 ? 1 : 
         (gyro.accY > 5 ? -1 : 0)) : 0;
+
+        recoil = -((3/9.8)*gyro.accZ);
+        fillArray();
+        drawCurve();
     };
 
     waveView = document.createElement("canvas");
@@ -738,6 +765,9 @@ $(document).ready(function() {
     mic.onsuccess = function() { };
     mic.onupdate = function(freqArray, reachedFreq, avgValue) {
         var value = parseFloat(avgValue.toFixed(2));
+        recoil = _recoilOffset+((value-0.5)*3);
+        fillArray();
+        drawCurve();
         console.log(value, freqArray.length);
         var resumedWave = resumeWave(freqArray);
         drawAB(resumedWave, avgValue);
@@ -749,9 +779,57 @@ $(document).ready(function() {
     }
     drawAB(ab);
 
+    curveView = document.createElement("canvas");
+    curveView.style.position = "absolute";
+    curveView.style.display = "initial";
+    curveView.width = 150;
+    curveView.height = 300;
+    curveView.style.left = ((sw/2)-150)+"px";
+    curveView.style.top = ((sh/2))+"px";
+    curveView.style.width = (75)+"px";
+    curveView.style.height = (150)+"px"; 
+    curveView.style.outline = "1px solid #fff"; 
+    curveView.style.zIndex = "15";
+    document.body.appendChild(curveView);
+
+    fillArray();
+    drawCurve();
     //snakeGameLoop();
     animate();
 });
+
+var drawCurve = function() {
+    var canvas = curveView;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, 150, 300);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#fff";
+
+    ctx.beginPath();
+    ctx.moveTo(0, 150);
+    ctx.lineTo(150, 150);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(curveArr[0].x, curveArr[0].y);
+    for (var n = 0; n < curveArr.length; n++) {
+        ctx.lineTo(75+(curveArr[n].x*75), 150+(curveArr[n].y*75));
+        //console.log(curveArr[n].x*75, curveArr[n].y*75);
+    };
+
+    ctx.font = "25px sans serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#fff";
+
+    if (recoil > 0)
+    ctx.fillText(recoil.toFixed(2), 75, 125);
+    else if (recoil < 0)
+    ctx.fillText(recoil.toFixed(2), 75, 175);
+
+    ctx.stroke();
+};
 
 var resumeWave = function(freqArray) {
     var blocks = 50;
@@ -778,7 +856,6 @@ var resumeWave = function(freqArray) {
 
 var drawAB = 
 function(freqArray=false, avgValue=0) {
-
     var canvas = waveView;
     var ctx = canvas.getContext("2d");
 
@@ -1326,6 +1403,22 @@ var drawGrid = function(ctx) {
 
     ctx.fillRect(0, 0, 150, 300);
 
+    /*
+    ctx.fillStyle = "#333";
+    for (var y = 0; y < 31; y++) {
+        var even = ((y % 2) == 0);
+        if (even)
+        for (var x = 0; x < 8; x++) {
+            ctx.fillRect((x*2)*(150/15), -(150/30)+(y*(150/15)), 
+           (150/15), (150/15));
+        }
+        else 
+        for (var x = 0; x < 8; x++) {
+            ctx.fillRect(((x*2)+1)*(150/15), -(150/30)+(y*(150/15)), 
+            (150/15), (150/15));
+        }
+    }*/
+
     for (var n = 0; n < 31; n++) {
         ctx.beginPath();
         ctx.moveTo(0, (n*(150/15))+(150/30));
@@ -1441,20 +1534,44 @@ var anaglyph = function(ctx, ctx0, ctx1) {
     ctx.putImageData(newImageData, 0, 0);
 };
 
+var scaleArr = [];
+var curveArr = [];
+var fillArray = function() {
+    scaleArr = [];
+    curveArr = [];
+    for (var n = 0; n < 70; n++) {
+        var c = { x: 0, y: 0 };
+        var p = { x: -1, y: 0 };
+        var rp = _rotate2d(c, p, -(n*(90/70)));
+        rp.y = (rp.y * recoil);
+        var cp = _rotate2d(c, p, -(n*(180/70)));
+        cp.y = (cp.y * recoil);
+        //console.log(rp);
+        var value = recoil > 0 ? 
+        1+(Math.abs(rp.y)) : 
+        1-(Math.abs(rp.y));
+        scaleArr.push(value);
+        curveArr.push(cp);
+    }
+};
+
+var _recoilOffset = 0;
+var recoil = 3;
 var setShape = function(ctx, ctx0, ctx1) {
     var canvas = document.createElement("canvas");
     canvas.width = 150;
     canvas.height = 300;
 
     ctx.drawImage(frameView1, 0, 0, 150, 300);
-    for (var n = 0; n < 35; n++) {
-        var radius = (37.5-n);
+    for (var n = 0; n < 70; n++) {
+        var radius = (70-n);
         ctx.save();
         ctx.beginPath();
         ctx.arc(75, 150, radius, 0, (Math.PI*2));
         ctx.clip();
 
-        var scale = (1+(n/10));
+        var scale = scaleArr[n];
+
         var image = {
             width: scale*vw,
             height: scale*vh
@@ -1475,6 +1592,19 @@ var setShape = function(ctx, ctx0, ctx1) {
 
         ctx.restore();
     }
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(75, 150, 71, 0, (Math.PI*2));
+    ctx.stroke();
+
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+    ctx.moveTo(75, 150+71);
+    ctx.lineTo(75, 150+100);
+    ctx.stroke();
 };
 
 var selectColor = function(ctx, ctx0, ctx1) {
