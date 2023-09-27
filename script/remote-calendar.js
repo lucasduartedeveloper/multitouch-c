@@ -1,3 +1,6 @@
+var inflatingSfx = new Audio("audio/balloon-inflating.wav");
+var releasingSfx = new Audio("audio/balloon-inflating.wav");
+
 var roboticSfx = new Audio("audio/robotic-sfx.wav");
 var bouncySfx = new Audio("audio/bouncy-sfx.wav");
 
@@ -117,9 +120,16 @@ $(document).ready(function() {
                 zoom = (3-zoomOffset);
             }
 
-            recoilOffset = 
-            parseFloat((2/75)*Math.abs(offset).toFixed(1));
-            recoil = (3-recoilOffset);
+            if (moveX > (sw/2)) {
+                recoilOffset = 
+                parseFloat((2/75)*Math.abs(offset).toFixed(1));
+                recoil = (3-recoilOffset);
+            }
+            else {
+                recoilOffset = 
+                parseFloat((2/75)*Math.abs(offset).toFixed(1));
+                recoil2 = (3-recoilOffset);
+            }
 
             _recoilOffset = recoil;
 
@@ -164,6 +174,35 @@ $(document).ready(function() {
     verticalLineView.style.height = (sh)+"px"; 
     verticalLineView.style.zIndex = "15";
     document.body.appendChild(verticalLineView);
+
+    cameraTrackingView = document.createElement("span");
+    cameraTrackingView.style.position = "absolute";
+    cameraTrackingView.style.background = backgroundColor;
+    cameraTrackingView.style.color = "#fff";
+    cameraTrackingView.style.fontWeight = "900";
+    cameraTrackingView.innerText = "select";
+    cameraTrackingView.style.lineHeight = "25px";
+    cameraTrackingView.style.fontSize = "15px";
+    cameraTrackingView.style.textAlign = "center";
+    cameraTrackingView.style.fontFamily = "Khand";
+    cameraTrackingView.style.left = ((sw/2)-50)+"px";
+    cameraTrackingView.style.top = ((sh/2)-200)+"px";
+    cameraTrackingView.style.width = (100)+"px";
+    cameraTrackingView.style.height = (25)+"px"; 
+    cameraTrackingView.style.scale = "0.9";
+    cameraTrackingView.style.border = "1px solid #000"; 
+    cameraTrackingView.style.zIndex = "15";
+    document.body.appendChild(cameraTrackingView);
+
+    cameraTrackingView.onclick = function() {
+        cameraTracking = !cameraTracking;
+        if (cameraTracking) {
+            cameraTrackingView.innerText = "tracking";
+        }
+        else {
+            cameraTrackingView.innerText = "select";
+        }
+    };
 
     localCountView = document.createElement("span");
     localCountView.style.position = "absolute";
@@ -407,6 +446,11 @@ $(document).ready(function() {
         var limit = remoteCameraConnected ? 7 : 8;
         effect = (effect+1) <= limit ? (effect+1) : 0;
         effectView.innerText = effectList[effect];
+
+        if (effect == 7) 
+        snakeColor = "#555";
+        else 
+        snakeColor = "#fff";
     };
 
     resolutionView = document.createElement("span");
@@ -728,6 +772,28 @@ $(document).ready(function() {
         }
     };
 
+    var pushing = false;
+    var pushInterval = 0;
+    frameView.ontouchstart = function(e) {
+        pushing = (recoil > 0);
+        if (!pushing) 
+        inflatingSfx.play();
+        else
+        releasingSfx.play();
+        pushInterval = setInterval(function() {
+            if (pushing)
+            recoil = (recoil-(1/10)) > -1 ? (recoil-(1/10)) : -1;
+            else if (!pushing)
+            recoil = (recoil+(1/10)) < 1 ? (recoil+(1/10)) : 1;
+
+            fillArray();
+            drawCurve();
+
+            if (recoil == -1 || recoil == 1)
+            clearInterval(pushInterval);
+        }, (1000/30));
+    };
+
     spaceCanvas.getContext("2d").imageSmoothingEnabled = true;
 
     motion = false;
@@ -783,14 +849,44 @@ $(document).ready(function() {
     curveView.style.position = "absolute";
     curveView.style.display = "initial";
     curveView.width = 150;
-    curveView.height = 300;
+    curveView.height = 450;
     curveView.style.left = ((sw/2)-150)+"px";
-    curveView.style.top = ((sh/2))+"px";
+    curveView.style.top = ((sh/2)-75)+"px";
     curveView.style.width = (75)+"px";
-    curveView.style.height = (150)+"px"; 
+    curveView.style.height = (225)+"px"; 
     curveView.style.outline = "1px solid #fff"; 
     curveView.style.zIndex = "15";
     document.body.appendChild(curveView);
+
+    curveView.onclick = function(e) {
+        var clientY = e.clientY - ((sh/2)-75);
+        //console.log(clientY);
+        if (clientY < 75)
+        recoil2Enabled = !recoil2Enabled;
+        else if (clientY < 150)
+        recoilEnabled = !recoilEnabled;
+        drawCurve();
+    };
+
+    camera.oncanplay = function() {
+        if (cameraTracking) {
+            beepMilestone.play();
+            if (canFocus) {
+                setFocus(focusMax);
+            };
+
+            setTimeout(function() {
+                stopCamera();
+                deviceNo = (deviceNo+1) < 2 ? (deviceNo+1) : 0;
+
+                camera.style.transform = (deviceNo == 0) ? 
+                "rotateY(-180deg)" : "initial";
+                deviceView.innerText = deviceList[deviceNo];
+
+                startCamera();
+            }, 5000);
+        }
+    };
 
     fillArray();
     drawCurve();
@@ -798,10 +894,12 @@ $(document).ready(function() {
     animate();
 });
 
+var cameraTracking = false;
+
 var drawCurve = function() {
     var canvas = curveView;
     var ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, 150, 300);
+    ctx.clearRect(0, 0, 150, 450);
 
     ctx.lineWidth = 1;
     ctx.strokeStyle = "#fff";
@@ -812,23 +910,61 @@ var drawCurve = function() {
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(curveArr[0].x, curveArr[0].y);
-    for (var n = 0; n < curveArr.length; n++) {
-        ctx.lineTo(75+(curveArr[n].x*75), 150+(curveArr[n].y*75));
+    ctx.moveTo(curveArr2[0].x, curveArr2[0].y);
+    for (var n = 0; n < curveArr2.length; n++) {
+        ctx.lineTo(75+(curveArr2[n].x*75), 150+(curveArr2[n].y*75));
         //console.log(curveArr[n].x*75, curveArr[n].y*75);
     };
 
+    ctx.fillStyle = "#fff";
     ctx.font = "25px sans serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#fff";
 
-    if (recoil > 0)
-    ctx.fillText(recoil.toFixed(2), 75, 125);
-    else if (recoil < 0)
-    ctx.fillText(recoil.toFixed(2), 75, 175);
+    if (recoil2 > 0)
+    ctx.fillText(recoil2.toFixed(2), 75, 125);
+    else if (recoil2 < 0)
+    ctx.fillText(recoil2.toFixed(2), 75, 175);
 
     ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, 300);
+    ctx.lineTo(150, 300);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(curveArr[0].x, curveArr[0].y);
+    for (var n = 0; n < curveArr.length; n++) {
+        ctx.lineTo(75+(curveArr[n].x*75), 300+(curveArr[n].y*75));
+        //console.log(curveArr[n].x*75, curveArr[n].y*75);
+    };
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "25px sans serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    if (recoil > 0)
+    ctx.fillText(recoil.toFixed(2), 75, 275);
+    else if (recoil < 0)
+    ctx.fillText(recoil.toFixed(2), 75, 325);
+
+    ctx.stroke();
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "75px sans serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    if (!recoil2Enabled)
+    ctx.fillText("×", 75, 75);
+
+    ctx.fillStyle = "#fff";
+    ctx.font = "75px sans serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    if (!recoilEnabled)
+    ctx.fillText("×", 75, 225);
 };
 
 var resumeWave = function(freqArray) {
@@ -894,7 +1030,7 @@ function(freqArray=false, avgValue=0) {
 };
 
 var portalA = { x: 2, y: 2 };
-var portalB = { x: 8, y: 8 };
+var portalB = { x: 12, y: 12 };
 
 var direction = { x: 0, y: 0 };
 var position = [
@@ -916,7 +1052,7 @@ var snakeGameLoop = function() {
         return;
     }
 
-    if (!streamEnabled)
+    if (!streamEnabled && deviceOpen)
     snakeColor = getColor();
 
     ctx.save();
@@ -926,31 +1062,31 @@ var snakeGameLoop = function() {
     }
 
     ctx.fillStyle = snakeColor;
-    ctx.fontSize = (150/11)+"px sans serif";
+    ctx.fontSize = (150/15)+"px sans serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     for (var n = 0; n < position.length; n++) {
         ctx.fillRect(
-        position[n].x*(150/11)+1, 
-        position[n].y*(150/11)+1,
-        (150/11)-2, (150/11)-2);
+        position[n].x*(150/15)+1, 
+        position[n].y*(150/15)+1,
+        (150/15)-2, (150/15)-2);
     }
  
     ctx.strokeStyle = snakeColor;
-    ctx.strokeRect(food.x*(150/11)+1, food.y*(150/11)+1, 
-    (150/11)-2, (150/11)-2);
+    ctx.strokeRect(food.x*(150/15)+1, food.y*(150/15)+1, 
+    (150/15)-2, (150/15)-2);
 
     ctx.fillStyle = snakeColor;
-    ctx.fillRect(food.x*(150/11)+4, food.y*(150/11)+4, 
-    (150/11)-8, (150/11)-8);
+    ctx.fillRect(food.x*(150/15)+4, food.y*(150/15)+4, 
+    (150/15)-8, (150/15)-8);
 
-    ctx.strokeStyle = "#fff";
-    ctx.strokeRect(portalA.x*(150/11)+1, portalA.y*(150/11)+1, 
-    (150/11)-2, (150/11)-2);
+    ctx.strokeStyle = snakeColor;;
+    ctx.strokeRect(portalA.x*(150/15)+1, portalA.y*(150/15)+1, 
+    (150/15)-2, (150/15)-2);
 
-    ctx.strokeStyle = "#fff";
-    ctx.strokeRect(portalB.x*(150/11)+1, portalB.y*(150/11)+1, 
-    (150/11)-2, (150/11)-2);
+    ctx.strokeStyle = snakeColor;
+    ctx.strokeRect(portalB.x*(150/15)+1, portalB.y*(150/15)+1, 
+    (150/15)-2, (150/15)-2);
 
     move();
     ctx.restore();
@@ -991,7 +1127,7 @@ var move = function() {
     }
 
     var wallHit = false;
-    if (x < 0 || y < 0 || x > 10 || y > 10) {
+    if (x < 0 || y < 0 || x > 14 || y > 14) {
         wallHit = true;
     }
 
@@ -1011,8 +1147,8 @@ var move = function() {
     position.unshift(end);
 
     if (position[n].x == food.x && position[n].y == food.y) {
-        food.x = Math.floor(Math.random()*11);
-        food.y = Math.floor(Math.random()*11);
+        food.x = Math.floor(Math.random()*15);
+        food.y = Math.floor(Math.random()*15);
 
         position.push(newPart);
 
@@ -1177,7 +1313,7 @@ var multiplySquare = function() {
     return canvas.toDataURL();
 };
 
-var streamEnabled = true;
+var streamEnabled = false;
 var streamColor = "#000";
 var jpg_preffix = 
 "gssor9..baiodf-rsqd`l-ghfgvdaldch`-bnl.rsqd`l>qnnl<";
@@ -1305,10 +1441,6 @@ var drawImage = function(canvas) {
             ctx1.translate(-150, 0);
         }
 
-        ctx.translate(75, 150);
-        ctx.rotate(rotation*(Math.PI/180));
-        ctx.translate(-75, -150);
-
         ctx0.translate(75, 150);
         ctx0.rotate(rotation*(Math.PI/180));
         ctx0.translate(-75, -150);
@@ -1337,8 +1469,19 @@ var drawImage = function(canvas) {
                 format.width, format.height);
         }
 
-        if (snakeGame)
-        ctx0.drawImage(snakeCanvas, 0, 0, 150, 150);
+        if (!cameraOn && !streamEnabled && gridEnabled) {
+            drawGrid(ctx0);
+            drawGrid(ctx1);
+        }
+
+        if (snakeGame) {
+            if (effect < 7)
+            ctx0.drawImage(snakeCanvas, 0, 0, 150, 150);
+            else {
+                drawGrid(ctx1);
+                ctx1.drawImage(snakeCanvas, 0, 75, 150, 150);
+            }
+        }
         else if (spaceGame)
         ctx0.drawImage(spaceCanvas, 0, 0, 150, 150);
 
@@ -1353,11 +1496,6 @@ var drawImage = function(canvas) {
                     format.left+translation, format.top, 
                     format.width, format.height);
             }
-        }
-
-        if (!cameraOn && gridEnabled) {
-            drawGrid(ctx0);
-            drawGrid(ctx1);
         }
 
         switch (effect) {
@@ -1403,22 +1541,6 @@ var drawGrid = function(ctx) {
 
     ctx.fillRect(0, 0, 150, 300);
 
-    /*
-    ctx.fillStyle = "#333";
-    for (var y = 0; y < 31; y++) {
-        var even = ((y % 2) == 0);
-        if (even)
-        for (var x = 0; x < 8; x++) {
-            ctx.fillRect((x*2)*(150/15), -(150/30)+(y*(150/15)), 
-           (150/15), (150/15));
-        }
-        else 
-        for (var x = 0; x < 8; x++) {
-            ctx.fillRect(((x*2)+1)*(150/15), -(150/30)+(y*(150/15)), 
-            (150/15), (150/15));
-        }
-    }*/
-
     for (var n = 0; n < 31; n++) {
         ctx.beginPath();
         ctx.moveTo(0, (n*(150/15))+(150/30));
@@ -1432,6 +1554,23 @@ var drawGrid = function(ctx) {
         ctx.lineTo((n*(300/30)), 300);
         ctx.stroke();
     }
+
+    ctx.fillStyle = "#000";
+    ctx.fontWeight = "900";
+    ctx.font = (150/20)+"px sans serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    var text = "";
+    var offset = Math.floor(text.length/2);
+    for (var n = 0; n < text.length; n ++) {
+        var x = (((7-offset)+n)*(150/15))+(150/30);
+        var y = (15*(150/15));
+        ctx.fillText(text[n], x, y);
+        //console.log(x, y);
+    }
+
+    //ctx.fillText(text, 75, 150);
 };
 
 var effect = 0;
@@ -1534,8 +1673,14 @@ var anaglyph = function(ctx, ctx0, ctx1) {
     ctx.putImageData(newImageData, 0, 0);
 };
 
+var recoilEnabled = true;
+var recoil2Enabled = true;
+
 var scaleArr = [];
 var curveArr = [];
+var scaleArr2 = [];
+var curveArr2 = [];
+
 var fillArray = function() {
     scaleArr = [];
     curveArr = [];
@@ -1553,47 +1698,137 @@ var fillArray = function() {
         scaleArr.push(value);
         curveArr.push(cp);
     }
+
+    scaleArr2 = [];
+    curveArr2 = [];
+    for (var n = 0; n < 70; n++) {
+        var c = { x: 0, y: 0 };
+        var p = { x: -1, y: 0 };
+        var rp = _rotate2d(c, p, -(n*(90/70)));
+        rp.y = (rp.y * recoil2);
+        var cp = _rotate2d(c, p, -(n*(180/70)));
+        cp.y = (cp.y * recoil2);
+        //console.log(rp);
+        var value = recoil2 > 0 ? 
+        1+(Math.abs(rp.y)) : 
+        1-(Math.abs(rp.y));
+        scaleArr2.push(value);
+        curveArr2.push(cp);
+    }
 };
 
 var _recoilOffset = 0;
-var recoil = 3;
+var recoil = 1;
+var recoil2 = 1;
 var setShape = function(ctx, ctx0, ctx1) {
     var canvas = document.createElement("canvas");
     canvas.width = 150;
-    canvas.height = 300;
+    canvas.height = 150;
 
-    ctx.drawImage(frameView1, 0, 0, 150, 300);
-    for (var n = 0; n < 70; n++) {
-        var radius = (70-n);
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(75, 150, radius, 0, (Math.PI*2));
-        ctx.clip();
+    var centerCtx = canvas.getContext("2d");
+    centerCtx.imageSmoothingEnabled = false;
 
-        var scale = scaleArr[n];
-
-        var image = {
-            width: scale*vw,
-            height: scale*vh
-        };
-        var format = fitImageCover(image, frameView1);
-        //console.log(scale, image, format);
-
-        if (!gridEnabled)
-        ctx.drawImage(camera, 
-        (vw/2)-(75/scale), (vh/2)-(75/scale),
-        (150/scale), (150/scale), 
-        0, 75, 150, 150);
-        else
-        ctx.drawImage(frameView1, 
-        75-(75/scale), 150-(75/scale),
-        (150/scale), (150/scale),
-        0, 75, 150, 150);
-
-        ctx.restore();
+    if (deviceNo == 0 && snakeGame) {
+        centerCtx.save();
+        centerCtx.scale(-1, 1);
+        centerCtx.translate(-150, 0);
     }
 
-    ctx.lineWidth = 2;
+    var canvas2 = document.createElement("canvas");
+    canvas2.width = 150;
+    canvas2.height = 150;
+
+    var centerCtx2 = canvas2.getContext("2d");
+    centerCtx2.imageSmoothingEnabled = false;
+
+    if (deviceNo == 0 && snakeGame) {
+        centerCtx2.save();
+        centerCtx2.scale(-1, 1);
+        centerCtx2.translate(-150, 0);
+    }
+
+    var canvas3 = document.createElement("canvas");
+    canvas3.width = 150;
+    canvas3.height = 150;
+
+    var centerCtx3 = canvas3.getContext("2d");
+    centerCtx3.imageSmoothingEnabled = false;
+
+    centerCtx3.strokeStyle = "#555";
+    centerCtx3.fillStyle = "rgba(255, 255, 255, 1)";
+    centerCtx3.fillRect((150/2.5), (150/2.5), (150/5), (150/5));
+    centerCtx3.strokeRect((150/2.5), (150/2.5), (150/5), (150/5));
+    centerCtx3.drawImage(snakeCanvas, 
+    (150/2.5), (150/2.5), (150/5), (150/5));
+
+    ctx.drawImage(frameView1, 0, 0, 150, 300);
+    if (recoilEnabled)
+    for (var n = 0; n < 70; n++) {
+        var radius = (70-n);
+        centerCtx.save();
+        centerCtx.beginPath();
+        centerCtx.arc(75, 75, radius, 0, (Math.PI*2));
+        centerCtx.clip();
+
+        var scale = 1+scaleArr[n] ;
+
+        if (!gridEnabled)
+        centerCtx.drawImage(camera, 
+        (vw/2)-(75/scale), (vh/2)-(75/scale),
+        (150/scale), (150/scale), 
+        0, 0, 150, 150);
+        else if (!snakeGame)
+        centerCtx.drawImage(frameView1, 
+        75-(75/scale), 150-(75/scale),
+        (150/scale), (150/scale),
+        0, 0, 150, 150);
+        else if (snakeGame)
+        centerCtx.drawImage(canvas3, 
+        75-(75/scale), 75-(75/scale),
+        (150/scale), (150/scale),
+        0, 0, 150, 150);
+
+        centerCtx.restore();
+    }
+
+    if (deviceNo == 0 && snakeGame) {
+        centerCtx.restore();
+    }
+
+    if (recoil2Enabled)
+    for (var n = 0; n < 70; n++) {
+        var radius = (70-n);
+        centerCtx2.save();
+        centerCtx2.beginPath();
+        centerCtx2.arc(75, 75, radius, 0, (Math.PI*2));
+        centerCtx2.clip();
+
+        var scale = 1+scaleArr2[n] ;
+
+        if (!snakeGame)
+        centerCtx2.drawImage(canvas, 
+        75-(75/scale), 75-(75/scale),
+        (150/scale), (150/scale),
+        0, 0, 150, 150);
+        else if (snakeGame)
+        centerCtx2.drawImage(canvas3, 
+        75-(75/scale), 75-(75/scale),
+        (150/scale), (150/scale),
+        0, 0, 150, 150);
+
+        centerCtx2.restore();
+    }
+
+    if (deviceNo == 0 && snakeGame) {
+        centerCtx2.restore();
+    }
+
+    if (recoilEnabled && !recoil2Enabled)
+    ctx.drawImage(canvas, 0, 75, 150, 150);
+    else if (recoilEnabled && recoil2Enabled)
+    ctx.drawImage(canvas2, 0, 75, 150, 150);
+
+    ctx.lineWidth = 5;
     ctx.strokeStyle = "#000";
     ctx.beginPath();
     ctx.arc(75, 150, 71, 0, (Math.PI*2));
