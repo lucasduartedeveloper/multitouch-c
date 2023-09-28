@@ -1561,7 +1561,7 @@ var drawGrid = function(ctx) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    var text = "";
+    var text = "L       R";
     var offset = Math.floor(text.length/2);
     for (var n = 0; n < text.length; n ++) {
         var x = (((7-offset)+n)*(150/15))+(150/30);
@@ -1717,6 +1717,7 @@ var fillArray = function() {
     }
 };
 
+var double = true;
 var _recoilOffset = 0;
 var recoil = 1;
 var recoil2 = 1;
@@ -1763,7 +1764,7 @@ var setShape = function(ctx, ctx0, ctx1) {
 
     ctx.drawImage(frameView1, 0, 0, 150, 300);
     if (recoilEnabled)
-    for (var n = 0; n < 70; n++) {
+    for (var n = 0; n < 70 ; n++) {
         var radius = (70-n);
         centerCtx.save();
         centerCtx.beginPath();
@@ -1774,13 +1775,15 @@ var setShape = function(ctx, ctx0, ctx1) {
 
         if (!gridEnabled)
         centerCtx.drawImage(camera, 
-        (vw/2)-(75/scale), (vh/2)-(75/scale),
-        (150/scale), (150/scale), 
+        ((vw/2)-(double ? 37.5 : 0))-((double ? 37.5 : 75)/scale), 
+        (vh/2)-((double ? 37.5 : 75)/scale),
+        ((double ? 75 : 150)/scale), ((double ? 75 : 150)/scale), 
         0, 0, 150, 150);
         else if (!snakeGame)
         centerCtx.drawImage(frameView1, 
-        75-(75/scale), 150-(75/scale),
-        (150/scale), (150/scale),
+        (double ? 37.5 : 75)-((double ? 37.5 : 75)/scale), 
+        150-((double ? 37.5 : 75)/scale),
+        ((double ? 75 : 150)/scale), ((double ? 75 : 150)/scale),
         0, 0, 150, 150);
         else if (snakeGame)
         centerCtx.drawImage(canvas3, 
@@ -1805,7 +1808,19 @@ var setShape = function(ctx, ctx0, ctx1) {
 
         var scale = 1+scaleArr2[n] ;
 
-        if (!snakeGame)
+        if (double && !gridEnabled)
+        centerCtx2.drawImage(camera, 
+        ((vw/2)+(double ? 37.5 : 0))-((double ? 37.5 : 75)/scale), 
+        (vh/2)-((double ? 37.5 : 75)/scale),
+        ((double ? 75 : 150)/scale), ((double ? 75 : 150)/scale), 
+        0, 0, 150, 150);
+        else if (double)
+        centerCtx2.drawImage(frameView1, 
+        (double ? 112.5 : 75)-((double ? 37.5 : 75)/scale), 
+        150-((double ? 37.5 : 75)/scale),
+        ((double ? 75 : 150)/scale), ((double ? 75 : 150)/scale),
+        0, 0, 150, 150);
+        else if (!snakeGame)
         centerCtx2.drawImage(canvas, 
         75-(75/scale), 75-(75/scale),
         (150/scale), (150/scale),
@@ -1824,22 +1839,45 @@ var setShape = function(ctx, ctx0, ctx1) {
     }
 
     if (recoilEnabled && !recoil2Enabled)
-    ctx.drawImage(canvas, 0, 75, 150, 150);
+    ctx.drawImage(canvas, 0, (double ? 112.5 : 75), 
+    (double ? 75 : 150), (double ? 75 : 150));
     else if (recoilEnabled && recoil2Enabled)
-    ctx.drawImage(canvas2, 0, 75, 150, 150);
+    ctx.drawImage(canvas2, (double ? 75 : 0), 
+    (double ? 112.5 : 75), (double ? 75 : 150), (double ? 75 : 150));
 
-    ctx.lineWidth = 5;
+    if (double && recoil2Enabled)
+    ctx.drawImage(canvas, 0, (double ? 112.5 : 75), 
+    (double ? 75 : 150), (double ? 75 : 150));
+
+    ctx.lineWidth = 2;
     ctx.strokeStyle = "#000";
     ctx.beginPath();
-    ctx.arc(75, 150, 71, 0, (Math.PI*2));
+    ctx.arc((double ? 37.5 : 75), 150, 
+    (double ? 35.5 : 71), 0, (Math.PI*2));
     ctx.stroke();
 
     ctx.lineCap = "round";
 
     ctx.beginPath();
-    ctx.moveTo(75, 150+71);
-    ctx.lineTo(75, 150+100);
+    ctx.moveTo((double ? 37.5 : 75), 150+(double ? 35.5 : 71));
+    ctx.lineTo((double ? 37.5 : 75), 150+(double ? 50 : 100));
     ctx.stroke();
+
+    if (double) {
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "#000";
+        ctx.beginPath();
+        ctx.arc((double ? 112.5 : 75), 150, 
+        (double ? 35.5 : 71), 0, (Math.PI*2));
+        ctx.stroke();
+
+        ctx.lineCap = "round";
+
+        ctx.beginPath();
+        ctx.moveTo((double ? 112.5 : 75), 150+(double ? 35.5 : 71));
+        ctx.lineTo((double ? 112.5 : 75), 150+(double ? 50 : 100));
+        ctx.stroke();
+    }
 };
 
 var selectColor = function(ctx, ctx0, ctx1) {
