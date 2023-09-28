@@ -912,8 +912,16 @@ var drawCurve = function() {
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(curveArr2[0].x, curveArr2[0].y);
+    if (double)
+    ctx.moveTo(112.5+(curveArr2[0].x*37.5), 
+    300+(curveArr2[0].y*37.5));
+    else
+    ctx.moveTo(curveArr2[0].x*75, 150+(curveArr2[0].y*75));
     for (var n = 0; n < curveArr2.length; n++) {
+        if (double)
+        ctx.lineTo(112.5+(curveArr2[n].x*37.5), 
+        300+(curveArr2[n].y*37.5));
+        else
         ctx.lineTo(75+(curveArr2[n].x*75), 150+(curveArr2[n].y*75));
         //console.log(curveArr[n].x*75, curveArr[n].y*75);
     };
@@ -936,8 +944,15 @@ var drawCurve = function() {
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.moveTo(curveArr[0].x, curveArr[0].y);
+    if (double)
+    ctx.moveTo(curveArr[0].x*37.5, 300+(curveArr[0].y*37.5));
+    else
+    ctx.moveTo(curveArr[0].x*75, 150+(curveArr[0].y*75));
     for (var n = 0; n < curveArr.length; n++) {
+        if (double)
+        ctx.lineTo(37.5+(curveArr[n].x*37.5), 
+        300+(curveArr[n].y*37.5));
+        else
         ctx.lineTo(75+(curveArr[n].x*75), 300+(curveArr[n].y*75));
         //console.log(curveArr[n].x*75, curveArr[n].y*75);
     };
@@ -1563,7 +1578,7 @@ var drawGrid = function(ctx) {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    var text = "L       R";
+    var text = "";
     var offset = Math.floor(text.length/2);
     for (var n = 0; n < text.length; n ++) {
         var x = (((7-offset)+n)*(150/15))+(150/30);
@@ -1571,6 +1586,11 @@ var drawGrid = function(ctx) {
         ctx.fillText(text[n], x, y);
         //console.log(x, y);
     }
+
+    ctx.beginPath();
+    ctx.arc(7*(150/15)+(150/30), 15*(150/15), (150/60), 0,
+    (Math.PI*2));
+    ctx.fill();
 
     //ctx.fillText(text, 75, 150);
 };
@@ -1719,7 +1739,7 @@ var fillArray = function() {
     }
 };
 
-var double = true;
+var double = false;
 var _recoilOffset = 0;
 var recoil = 1;
 var recoil2 = 1;
@@ -1777,15 +1797,13 @@ var setShape = function(ctx, ctx0, ctx1) {
 
         if (!gridEnabled)
         centerCtx.drawImage(camera, 
-        ((vw/2)-(double ? 37.5 : 0))-((double ? 37.5 : 75)/scale), 
-        (vh/2)-((double ? 37.5 : 75)/scale),
-        ((double ? 75 : 150)/scale), ((double ? 75 : 150)/scale), 
+        ((vw/2)-(75/scale)), ((vh/2)-(75/scale)),
+        (150/scale), (150/scale), 
         0, 0, 150, 150);
         else if (!snakeGame)
         centerCtx.drawImage(frameView1, 
-        (double ? 37.5 : 75)-((double ? 37.5 : 75)/scale), 
-        150-((double ? 37.5 : 75)/scale),
-        ((double ? 75 : 150)/scale), ((double ? 75 : 150)/scale),
+        75-(75/scale), 150-(75/scale),
+        (150/scale), (150/scale),
         0, 0, 150, 150);
         else if (snakeGame)
         centerCtx.drawImage(canvas3, 
@@ -1812,15 +1830,13 @@ var setShape = function(ctx, ctx0, ctx1) {
 
         if (double && !gridEnabled)
         centerCtx2.drawImage(camera, 
-        ((vw/2)+(double ? 37.5 : 0))-((double ? 37.5 : 75)/scale), 
-        (vh/2)-((double ? 37.5 : 75)/scale),
-        ((double ? 75 : 150)/scale), ((double ? 75 : 150)/scale), 
+        ((vw/2)-(75/scale)), ((vh/2)-(75/scale)),
+        (150/scale), (150/scale), 
         0, 0, 150, 150);
         else if (double)
         centerCtx2.drawImage(frameView1, 
-        (double ? 112.5 : 75)-((double ? 37.5 : 75)/scale), 
-        150-((double ? 37.5 : 75)/scale),
-        ((double ? 75 : 150)/scale), ((double ? 75 : 150)/scale),
+        75-(75/scale), 150-(75/scale),
+        (150/scale), (150/scale),
         0, 0, 150, 150);
         else if (!snakeGame)
         centerCtx2.drawImage(canvas, 
