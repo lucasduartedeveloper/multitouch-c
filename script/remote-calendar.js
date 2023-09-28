@@ -865,6 +865,8 @@ $(document).ready(function() {
         recoil2Enabled = !recoil2Enabled;
         else if (clientY < 150)
         recoilEnabled = !recoilEnabled;
+        else if (clientY < 225)
+        double = !double;
         drawCurve();
     };
 
