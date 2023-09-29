@@ -1807,10 +1807,10 @@ var setShape = function(ctx, ctx0, ctx1) {
 
     centerCtx3.strokeStyle = "#555";
     centerCtx3.fillStyle = "rgba(255, 255, 255, 1)";
-    //centerCtx3.fillRect((150/2.5), (150/2.5), (150/5), (150/5));
-    //centerCtx3.strokeRect((150/2.5), (150/2.5), (150/5), (150/5));
+    centerCtx3.fillRect((150/2.5), (150/2.5), (150/5), (150/5));
+    centerCtx3.strokeRect((150/2.5), (150/2.5), (150/5), (150/5));
     centerCtx3.drawImage(snakeCanvas, 
-    0, 0, 150, 150);
+    (150/2.5), (150/2.5), (150/5), (150/5));
 
     ctx.drawImage(frameView1, 0, 0, 150, 300);
     if (recoilEnabled)
