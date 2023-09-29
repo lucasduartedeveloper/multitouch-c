@@ -112,7 +112,7 @@ $(document).ready(function() {
 
         if (Math.abs(offsetX) > Math.abs(offsetY)) {
             offset = Math.floor(moveX-(sw/2));
-            if (effect < 7) {
+            if (effect < 6) {
                 translation = offset < -75 ? -75 : offset;
                 translation = offset > 75 ? 75 : offset;
                 zoomOffset = 
@@ -120,6 +120,7 @@ $(document).ready(function() {
                 zoom = (3-zoomOffset);
             }
 
+            if (effect == 7)
             if (moveX > (sw/2)) {
                 recoilOffset = 
                 parseFloat((2/75)*Math.abs(offset).toFixed(1));
@@ -131,7 +132,22 @@ $(document).ready(function() {
                 recoil2 = (3-recoilOffset);
             }
 
+            if (effect == 7)
             _recoilOffset = recoil;
+
+            if (effect == 6)
+            if (moveX > (sw/2)) {
+                offset = 
+                parseFloat((100/75)*Math.abs(offset).toFixed(1));
+                contrast0 = (100-offset);
+            }
+            else {
+                offset = 
+                parseFloat((100/75)*Math.abs(offset).toFixed(1));
+                contrast1 = (100-offset);
+            }
+
+            drawContrast();
 
             fillArray();
             drawCurve();
@@ -284,8 +300,8 @@ $(document).ready(function() {
     document.body.appendChild(toggleUpView);
 
     toggleUpView.onclick = function() {
-        frameView.style.display = "initial";
-        frameView.className = 
+        frameViewContainer.style.display = "initial";
+        frameViewContainer.className = 
         "animate__animated animate__slideInUp";
         //frameView.style.animationSpeed = 0.3;
         toggleUpView.style.display = "none";
@@ -534,6 +550,25 @@ $(document).ready(function() {
         "fa-solid fa-venus";
     };
 
+    movementView = document.createElement("span");
+    movementView.style.position = "absolute";
+    movementView.style.color = "#fff";
+    movementView.innerText = "0%";
+    movementView.style.fontWeight = "900";
+    movementView.style.lineHeight = "50px";
+    movementView.style.fontSize = "15px";
+    movementView.style.textAlign = "center";
+    movementView.style.fontFamily = "Khand";
+    movementView.style.left = ((sw/2)+100)+"px";
+    movementView.style.top = ((sh/2))+"px";
+    movementView.style.width = (50)+"px";
+    movementView.style.height = (50)+"px"; 
+    movementView.style.scale = "0.9";
+    //movementView.style.border = "1px solid #000";
+    movementView.style.borderRadius= "50%";
+    movementView.style.zIndex = "15";
+    document.body.appendChild(movementView);
+
     dotView = document.createElement("span");
     dotView.style.position = "absolute";
     dotView.style.background = "#fff";
@@ -672,19 +707,28 @@ $(document).ready(function() {
         hiddenElement.click();
     };
 
+    frameViewContainer = document.createElement("div");
+    frameViewContainer.style.position = "absolute";
+    frameViewContainer.style.display = "none";
+    frameViewContainer.style.left = ((sw/2)-75)+"px";
+    frameViewContainer.style.top = ((sh/2)-150)+"px";
+    frameViewContainer.style.width = (150)+"px";
+    frameViewContainer.style.height = (300)+"px"; 
+    frameViewContainer.style.outline = "1px solid #fff"; 
+    frameViewContainer.style.zIndex = "15";
+    document.body.appendChild(frameViewContainer);
+
     frameView = document.createElement("canvas");
     frameView.style.position = "absolute";
-    frameView.style.display = "none";
     frameView.style.background = backgroundColor;
     frameView.width = 150;
     frameView.height = 300;
-    frameView.style.left = ((sw/2)-75)+"px";
-    frameView.style.top = ((sh/2)-150)+"px";
+    frameView.style.left = (0)+"px";
+    frameView.style.top = (0)+"px";
     frameView.style.width = (150)+"px";
     frameView.style.height = (300)+"px"; 
-    frameView.style.outline = "1px solid #fff"; 
     frameView.style.zIndex = "15";
-    document.body.appendChild(frameView);
+    frameViewContainer.appendChild(frameView);
 
     frameView.getContext("2d").
     imageSmoothingEnabled = false;
@@ -901,6 +945,19 @@ $(document).ready(function() {
     }
     drawAB(ab);
 
+    contrastView = document.createElement("canvas");
+    contrastView.style.position = "absolute";
+    contrastView.style.display = "initial";
+    contrastView.width = 150;
+    contrastView.height = 450;
+    contrastView.style.left = ((sw/2)-150)+"px";
+    contrastView.style.top = ((sh/2)-150)+"px";
+    contrastView.style.width = (75)+"px";
+    contrastView.style.height = (225)+"px"; 
+    contrastView.style.outline = "1px solid #fff"; 
+    contrastView.style.zIndex = "15";
+    document.body.appendChild(contrastView);
+
     curveView = document.createElement("canvas");
     curveView.style.position = "absolute";
     curveView.style.display = "initial";
@@ -946,6 +1003,66 @@ $(document).ready(function() {
         }
     };
 
+    camera.onplay = function() {
+        cameraLoaded = true;
+        fillMovementArray();
+    };
+
+    storedCanvas = document.createElement("canvas");
+    storedCanvas.width = 150;
+    storedCanvas.height = 300;
+
+    storedCanvas.getContext("2d").imageSmoothingEnabled = true;
+
+    fullScreenView = document.createElement("i");
+    fullScreenView.style.position = "absolute";
+    fullScreenView.style.color = "#fff";
+    fullScreenView.className = 
+    "fa-solid fa-arrow-up-right-from-square";
+    fullScreenView.style.lineHeight = "50px";
+    fullScreenView.style.fontSize = "15px";
+    fullScreenView.style.left = ((sw/2)+100)+"px";
+    fullScreenView.style.top = ((sh/2)+50)+"px";
+    fullScreenView.style.width = (50)+"px";
+    fullScreenView.style.height = (50)+"px"; 
+    fullScreenView.style.border = "1px solid #fff";
+    fullScreenView.style.borderRadius = "50%";
+    fullScreenView.style.scale = "0.9";
+    fullScreenView.style.zIndex = "25";
+    document.body.appendChild(fullScreenView);
+
+    fullScreenView.onclick = function() {
+        frameViewContainer.requestFullscreen();
+    };
+
+    fullscreenEnabled = false;
+    frameViewContainer.onfullscreenchange = function() {
+        fullscreenEnabled = 
+        document.fullscreenElement ? true : false;
+        console.log("fullscreen: "+fullscreenEnabled);
+        if (fullscreenEnabled) {
+            var width = screen.width;
+            var height = screen.height;
+            frameViewContainer.style.background = "#000";
+            frameView.style.left = ((width-150)/2)+"px";
+            frameView.style.top = ((height-300)/2)+"px";
+            frameView.style.scale = "2";
+
+            frameViewContainer.appendChild(videoStream);
+        }
+        else {
+            frameViewContainer.style.background = "#f0f";
+            frameView.style.left = (0)+"px";
+            frameView.style.top = (0)+"px";
+            frameView.style.scale = "1";
+
+            document.body.appendChild(videoStream);
+        }
+    };
+
+    drawContrast();
+
+    fillMovementArray();
     createPolygon();
 
     fillArray();
@@ -954,7 +1071,26 @@ $(document).ready(function() {
     animate();
 });
 
+var imageStored = false;
+var cameraLoaded = false;
 var cameraTracking = false;
+
+var contrast0 = 25;
+var contrast1 = 50;
+var drawContrast = function() {
+    var canvas = contrastView;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, 150, 150);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#fff";
+
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(((1/100)*contrast0)*150, 75);
+    ctx.lineTo(((1/100)*contrast1)*150, 150);
+    ctx.stroke();
+};
 
 var drawCurve = function() {
     var canvas = curveView;
@@ -1662,6 +1798,15 @@ var drawImage = function(canvas) {
                 break;
         }
 
+        if (cameraLoaded && imageStored)
+        frameMovement();
+
+        if (!imageStored) {
+            var storedCtx = storedCanvas.getContext("2d");
+            storedCtx.drawImage(frameView, 0, 0, 150, 300);
+            imageStored = true;
+        }
+
         if (cameraOn && gridEnabled) {
             drawGrid(ctx);
         }
@@ -1669,6 +1814,94 @@ var drawImage = function(canvas) {
         ctx0.restore();
         ctx1.restore();
     }
+};
+
+var movement = 0;
+var lastMovementArray = [];
+var movementArray = [];
+var fillMovementArray = function() {
+    movement = 0;
+    lastMovementArray = [];
+    movementArray = [];
+    for (var n = 0; n < (150*300); n++) {
+        lastMovementArray.push(0);
+        movementArray.push(0);
+    };
+};
+
+var frameMovement = function() {
+    var storedCtx = storedCanvas.getContext("2d");
+    var storedImageData = 
+    storedCtx.getImageData(0, 0, 150, 300);
+    var storedArray = storedImageData.data;
+
+    var ctx = frameView.getContext("2d");
+    var imageData = 
+    ctx.getImageData(0, 0, 150, 300);
+    var imageArray = imageData.data;
+
+    var sum0 = 0;
+    var sum1 = 0;
+    var result = 0;
+    var newArray = new Uint8ClampedArray(imageArray);
+    for (var n = 0; n < imageArray.length; n+=4) {
+        var storedSum = (100/(255*3))*
+        (storedArray[n] +
+        storedArray[n+1] +
+        storedArray[n+2]);
+
+        var sum = (100/(255*3))*
+        (imageArray[n] +
+        imageArray[n+1] +
+        imageArray[n+2]);
+
+        movementArray[n/4] = (sum-storedSum);
+        if (Math.abs(movementArray[n/4] - 
+        lastMovementArray[n/4]) > 0) {
+            newArray[n] = 0;
+            newArray[n+1] = 0;
+            newArray[n+2] = 0;
+        }
+        else {
+            newArray[n] = 255;
+            newArray[n+1] = 255;
+            newArray[n+2] = 255;
+        }
+
+        var spacing;
+        if (sum < contrast0) spacing = 0;
+        else if (sum < contrast1) spacing = 1;
+        else spacing = 2;
+
+        var value = [ 0, 100, 255 ][spacing];
+
+        newArray[n] = value;
+        newArray[n+1] = value;
+        newArray[n+2] = value;
+
+        if (n == 0) {
+            console.log(Math.abs(movementArray[n/4] - 
+        lastMovementArray[n/4]));
+        }
+
+        lastMovementArray[n/4] = movementArray[n/4];
+
+        sum0 += storedSum;
+        sum1 += sum;
+        result += (sum-storedSum);
+    }
+
+    //console.log(sum0 / (imageArray.length/4));
+    //console.log(sum1 / (imageArray.length/4));
+
+    var newImageData = new ImageData(newArray, 
+    imageData.width, imageData.height);
+
+    ctx.putImageData(newImageData, 0, 0);
+
+    result = Math.abs((result / (imageArray.length/4)));
+    movement += result;
+    movementView.innerText = result.toFixed(2)+"%";
 };
 
 var gridType = 0;
