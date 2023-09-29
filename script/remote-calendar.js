@@ -507,6 +507,33 @@ $(document).ready(function() {
         gridEnabled = gridSize > 0;
     };
 
+    gridTypeView = document.createElement("i");
+    gridTypeView.style.position = "absolute";
+    gridTypeView.style.background = "#fff";
+    gridTypeView.style.color = "#000";
+    gridTypeView.className = "fa-solid fa-mars";
+    gridTypeView.style.fontWeight = "900";
+    gridTypeView.style.lineHeight = "50px";
+    gridTypeView.style.fontSize = "15px";
+    gridTypeView.style.textAlign = "center";
+    gridTypeView.style.left = ((sw/2)+100)+"px";
+    gridTypeView.style.top = ((sh/2)-50)+"px";
+    gridTypeView.style.width = (50)+"px";
+    gridTypeView.style.height = (50)+"px"; 
+    gridTypeView.style.scale = "0.9";
+    gridTypeView.style.border = "1px solid #000";
+    gridTypeView.style.borderRadius= "50%";
+    gridTypeView.style.zIndex = "15";
+    document.body.appendChild(gridTypeView);
+
+    gridTypeView.onclick = function() {
+        gridType = (gridType+1) < 2 ? (gridType+1) : 0;
+        gridTypeView.className = 
+        gridType == 0 ?
+        "fa-solid fa-mars" : 
+        "fa-solid fa-venus";
+    };
+
     dotView = document.createElement("span");
     dotView.style.position = "absolute";
     dotView.style.background = "#fff";
@@ -1644,11 +1671,12 @@ var drawImage = function(canvas) {
     }
 };
 
+var gridType = 0;
 var gridSize = 15;
 var gridEnabled = true;
 var drawGrid = function(ctx) {
     ctx.lineWidth = 1;
-    ctx.strokeStyle = "lightblue";
+    ctx.strokeStyle = gridType == 0 ? "lightblue" : "pink";
     ctx.fillStyle = "#fff";
 
     if (!cameraOn)
