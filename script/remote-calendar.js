@@ -958,6 +958,11 @@ $(document).ready(function() {
     contrastView.style.zIndex = "15";
     document.body.appendChild(contrastView);
 
+    contrastView.onclick = function() {
+        invertLight = !invertLight;
+        drawContrast();
+    };
+
     curveView = document.createElement("canvas");
     curveView.style.position = "absolute";
     curveView.style.display = "initial";
@@ -1075,6 +1080,7 @@ var imageStored = false;
 var cameraLoaded = false;
 var cameraTracking = false;
 
+var invertLight = false;
 var contrast0 = 25;
 var contrast1 = 50;
 var drawContrast = function() {
@@ -1085,10 +1091,15 @@ var drawContrast = function() {
     ctx.lineWidth = 1;
     ctx.strokeStyle = "#fff";
 
+    var x0 = (((1/100)*contrast0)*150);
+    var x1 = (((1/100)*contrast1)*150);
+
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(((1/100)*contrast0)*150, 75);
-    ctx.lineTo(((1/100)*contrast1)*150, 150);
+    ctx.moveTo((invertLight ? 150 : 0), 0);
+    ctx.lineTo(
+    (invertLight ? (150 - x0) : x0), 75);
+    ctx.lineTo(
+    (invertLight ? (150 - x1) : x1), 150);
     ctx.stroke();
 };
 
@@ -1869,11 +1880,18 @@ var frameMovement = function() {
         }
 
         var spacing;
-        if (sum < contrast0) spacing = 0;
-        else if (sum < contrast1) spacing = 1;
+        if (sum < (contrast0 > contrast1 ? contrast1 : contrast0)) 
+        spacing = 0;
+        else if 
+        (sum < (contrast1 > contrast0 ? contrast1 : contrast0)) 
+        spacing = 1;
         else spacing = 2;
 
-        var value = [ 0, 100, 255 ][spacing];
+        var value;
+        if (!invertLight)
+        value = [ 0, 100, 255 ][spacing];
+        else
+        value = [ 255, 100, 0 ][spacing];
 
         newArray[n] = value;
         newArray[n+1] = value;
