@@ -1051,6 +1051,8 @@ $(document).ready(function() {
             frameViewContainer.style.background = "#000";
             frameView.style.left = ((width-150)/2)+"px";
             frameView.style.top = ((height-300)/2)+"px";
+            frameView.style.clipPath = 
+            "ellipse(75px 75px at 50% 50%)";
             frameView.style.scale = "2";
 
             frameViewContainer.appendChild(videoStream);
@@ -1059,11 +1061,17 @@ $(document).ready(function() {
             frameViewContainer.style.background = "#f0f";
             frameView.style.left = (0)+"px";
             frameView.style.top = (0)+"px";
+            frameView.style.clipPath = "initial";
             frameView.style.scale = "1";
 
             document.body.appendChild(videoStream);
         }
     };
+
+    var clipPath = "";
+    for (var n = 0; n < 360; n++) {
+        
+    }
 
     drawContrast();
 
@@ -2169,9 +2177,9 @@ var setShape = function(ctx, ctx0, ctx1) {
     for (var n = 0; n < 70 ; n++) {
         var radius = (70-n);
         centerCtx.save();
-        //centerCtx.beginPath();
-        //centerCtx.arc(75, 75, radius, 0, (Math.PI*2));
-        drawPolygon(centerCtx, 75, 75, radius);
+        centerCtx.beginPath();
+        centerCtx.arc(75, 75, radius, 0, (Math.PI*2));
+        //drawPolygon(centerCtx, 75, 75, radius);
         centerCtx.clip();
 
         var scale = 1+scaleArr[n] ;
@@ -2251,18 +2259,18 @@ var setShape = function(ctx, ctx0, ctx1) {
     if (recoilEnabled) {
         ctx.lineWidth = 2;
         ctx.strokeStyle = "#000";
-        //ctx.beginPath();
-        //ctx.arc((double ? 37.5 : 75), 150, 
-        //(double ? 35.5 : 71), 0, (Math.PI*2));
-        drawPolygon(ctx, (double ? 37.5 : 75), 150,
-        (double ? 35.5 : 71));
+        ctx.beginPath();
+        ctx.arc((double ? 37.5 : 75), 150, 
+        (double ? 35.5 : 71), 0, (Math.PI*2));
+        //drawPolygon(ctx, (double ? 37.5 : 75), 150,
+        //(double ? 35.5 : 71));
         ctx.stroke();
 
         ctx.lineCap = "round";
 
         ctx.beginPath();
         ctx.moveTo((double ? 37.5 : 75), 
-        150+((double ? 35.5 : 71)*0.7));
+        150+(double ? 35.5 : 71));
         ctx.lineTo((double ? 37.5 : 75), 150+(double ? 50 : 100));
         ctx.stroke();
     }
