@@ -135,7 +135,7 @@ $(document).ready(function() {
             if (effect == 7)
             _recoilOffset = recoil;
 
-            if (effect == 6)
+            if (effect == 8)
             if (moveX > (sw/2)) {
                 offset = 
                 parseFloat((100/75)*Math.abs(offset).toFixed(1));
@@ -436,7 +436,7 @@ $(document).ready(function() {
 
     effectList = 
     [ "split-x a", "split-x b", "split-y", "striped x", "striped y", 
-    "striped both", "remote", "pinch-out", "3D" ];
+    "striped both", "remote", "pinch-out", "recolor", "3D" ];
 
     effectView = document.createElement("span");
     effectView.style.position = "absolute";
@@ -1805,17 +1805,12 @@ var drawImage = function(canvas) {
                 setShape(ctx);
                 break;
             case 8:
+                if (cameraLoaded)
+                frameMovement();
+                break;
+            case 9:
                 anaglyph(ctx, ctx0, ctx1);
                 break;
-        }
-
-        if (cameraLoaded && imageStored)
-        frameMovement();
-
-        if (!imageStored) {
-            var storedCtx = storedCanvas.getContext("2d");
-            storedCtx.drawImage(frameView, 0, 0, 150, 300);
-            imageStored = true;
         }
 
         if (cameraOn && gridEnabled) {
@@ -1841,11 +1836,6 @@ var fillMovementArray = function() {
 };
 
 var frameMovement = function() {
-    var storedCtx = storedCanvas.getContext("2d");
-    var storedImageData = 
-    storedCtx.getImageData(0, 0, 150, 300);
-    var storedArray = storedImageData.data;
-
     var ctx = frameView.getContext("2d");
     var imageData = 
     ctx.getImageData(0, 0, 150, 300);
@@ -1856,57 +1846,44 @@ var frameMovement = function() {
     var result = 0;
     var newArray = new Uint8ClampedArray(imageArray);
     for (var n = 0; n < imageArray.length; n+=4) {
-        var storedSum = (100/(255*3))*
-        (storedArray[n] +
-        storedArray[n+1] +
-        storedArray[n+2]);
-
         var sum = (100/(255*3))*
         (imageArray[n] +
         imageArray[n+1] +
         imageArray[n+2]);
 
-        movementArray[n/4] = (sum-storedSum);
-        if (Math.abs(movementArray[n/4] - 
-        lastMovementArray[n/4]) > 0) {
-            newArray[n] = 0;
-            newArray[n+1] = 0;
-            newArray[n+2] = 0;
-        }
-        else {
-            newArray[n] = 255;
-            newArray[n+1] = 255;
-            newArray[n+2] = 255;
-        }
+        var color0 = (contrast0 > contrast1 ? contrast1 : contrast0);
+        var color1 = (contrast1 > contrast0 ? contrast1 : contrast0);
 
         var spacing;
-        if (sum < (contrast0 > contrast1 ? contrast1 : contrast0)) 
+        if (sum < color0) 
         spacing = 0;
-        else if 
-        (sum < (contrast1 > contrast0 ? contrast1 : contrast0)) 
-        spacing = 1;
-        else spacing = 2;
+        else if (sum < color1) {
+            var offset = (color1-color0)/2;
+            if (sum < color1-offset)
+            spacing = 1;
+            else
+            spacing = 2;
+        }
+        else spacing = 3;
 
-        var value;
-        if (!invertLight)
-        value = [ 0, 100, 255 ][spacing];
-        else
-        value = [ 255, 100, 0 ][spacing];
+        var redArray;
+        var greenArray;
+        var blueArray;
 
-        newArray[n] = value;
-        newArray[n+1] = value;
-        newArray[n+2] = value;
-
-        if (n == 0) {
-            console.log(Math.abs(movementArray[n/4] - 
-        lastMovementArray[n/4]));
+        redArray = [ 0, 188, 234, 255 ];
+        greenArray = [ 0, 163, 215, 255 ];
+        blueArray = [ 0, 127, 187, 255 ];
+        if (invertLight) {
+            redArray = redArray.reverse();
+            greenArray = greenArray.reverse();
+            blueArray = blueArray.reverse();
         }
 
-        lastMovementArray[n/4] = movementArray[n/4];
+        newArray[n] = redArray[spacing]
+        newArray[n+1] = greenArray[spacing]
+        newArray[n+2] = blueArray[spacing];
 
-        sum0 += storedSum;
-        sum1 += sum;
-        result += (sum-storedSum);
+        result += sum;
     }
 
     //console.log(sum0 / (imageArray.length/4));
