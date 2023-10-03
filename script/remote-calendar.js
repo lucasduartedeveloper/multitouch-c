@@ -124,11 +124,13 @@ $(document).ready(function() {
             if (moveX > (sw/2)) {
                 recoilOffset = 
                 parseFloat((2/75)*Math.abs(offset).toFixed(1));
+                recoilOffset = (recoilOffset - (recoilOffset % 0.5));
                 recoil = (3-recoilOffset);
             }
             else {
                 recoilOffset = 
                 parseFloat((2/75)*Math.abs(offset).toFixed(1));
+                recoilOffset = (recoilOffset - (recoilOffset % 0.5));
                 recoil2 = (3-recoilOffset);
             }
 
@@ -645,6 +647,9 @@ $(document).ready(function() {
 
     toggleView.onclick = function() {
        updateImage = !updateImage;
+       if (!updateImage) {
+           drawSide(selectedSize);
+       }
     };
 
     downloadView = document.createElement("span");
@@ -669,7 +674,7 @@ $(document).ready(function() {
     document.body.appendChild(downloadView);
 
     downloadView.onclick = function() {
-        var dataURL = frameView.toDataURL();
+        var dataURL = storedCanvas.toDataURL();
         var hiddenElement = document.createElement('a');
         hiddenElement.href = dataURL;
         hiddenElement.target = "_blank";
@@ -875,6 +880,7 @@ $(document).ready(function() {
     var pushing = false;
     var pushInterval = 0;
     frameView.ontouchstart = function(e) {
+        if (effect != 7) return;
         pushing = (recoil > 0);
         if (!pushing) 
         inflatingSfx.play();
@@ -988,6 +994,39 @@ $(document).ready(function() {
         drawCurve();
     };
 
+    sideView = document.createElement("canvas");
+    sideView.style.position = "absolute";
+    sideView.style.display = "initial";
+    sideView.width = 150;
+    sideView.height = 150;
+    sideView.style.left = (10)+"px";
+    sideView.style.top = (sh-85)+"px";
+    sideView.style.width = (75)+"px";
+    sideView.style.height = (75)+"px"; 
+    //sideView.style.outline = "1px solid #fff"; 
+    sideView.style.zIndex = "55";
+    document.body.appendChild(sideView);
+
+    sideView.onclick = function() {
+        var direction = 0; //Math.floor(Math.random()*2);
+
+        if (direction == 0) 
+        selectedSide = (selectedSide+1) < numSides ? 
+        (selectedSide+1) : 0;
+        else 
+        selectedSide = (selectedSide-1) >= 0 ? 
+        (selectedSide-1) : 7;
+
+        var c = { x: 0, y: 0 };
+        var p = { x: 0, y: -5 };
+        var angle = (360/numSides);
+        var rp = _rotate2d(c, p, (selectedSide*angle));
+        controls.target = new THREE.Vector3(rp.x, 2.5, rp.y);
+        controls.update();
+
+        drawSides();
+    };
+
     camera.oncanplay = function() {
         if (cameraTracking) {
             beepMilestone.play();
@@ -1068,10 +1107,36 @@ $(document).ready(function() {
         }
     };
 
-    var clipPath = "";
-    for (var n = 0; n < 360; n++) {
-        
-    }
+    threejsEnabled = false;
+    threejsView = document.createElement("img");
+    threejsView.style.position = "absolute";
+    threejsView.style.display = "initial";
+    threejsView.style.left = (95)+"px";
+    threejsView.style.top = (sh-35)+"px";
+    threejsView.style.width = (25)+"px";
+    threejsView.style.height = (25)+"px"; 
+    threejsView.style.borderRadius = "50%";
+    threejsView.style.zIndex = "55";
+    document.body.appendChild(threejsView);
+
+    threejsView.src = "img/threejs-logo.png";
+
+    load3D((sw/sh));
+    threejsView.onclick = function() {
+        threejsEnabled = !threejsEnabled;
+        renderer.domElement.style.display = threejsEnabled ? 
+        "initial" : "none";
+        if (threejsEnabled) 
+        startAnimation();
+        else 
+        pauseAnimation();
+    };
+
+    storedCanvas = document.createElement("canvas");
+    storedCanvas.width = (150*numSides);
+    storedCanvas.height = 150;
+
+    drawSides();
 
     drawContrast();
 
@@ -1083,6 +1148,68 @@ $(document).ready(function() {
     //snakeGameLoop();
     animate();
 });
+
+var selectedSide = 0;
+var numSides = 8;
+var drawSides = function() {
+    var canvas = sideView;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect(0, 0, 150, 150);
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "#fff";
+
+    var angle = -(360/numSides);
+
+    for (var n = 0; n < numSides; n++) {
+        var c = { x: 75, y: 75 };
+        var p = { x: 75, y: 10 };
+        var rp0 = _rotate2d(c, p, (angle/2)+(n*angle));
+        var rp1 = _rotate2d(c, p, (angle/2)+((n+1)*angle));
+
+        ctx.beginPath();
+        ctx.moveTo(rp0.x, rp0.y);
+        ctx.lineTo(rp1.x, rp1.y);
+        ctx.stroke();
+    }
+
+    ctx.fillStyle = "#fff";
+    ctx.beginPath();
+    ctx.arc(75, 75, 10, 0, (Math.PI*2));
+    ctx.fill();
+
+    var radians = (selectedSide*angle)*(Math.PI/180);
+
+    ctx.save();
+    ctx.translate(75, 75);
+    ctx.rotate(radians);
+    ctx.translate(-75, -75);
+
+    ctx.beginPath();
+    ctx.moveTo(75, 20);
+    ctx.lineTo(75, 50);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(75, 20);
+    ctx.lineTo(70, 25);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(75, 20);
+    ctx.lineTo(80, 25);
+    ctx.stroke();
+
+    ctx.restore();
+};
+
+var drawSide = function(n) {
+    var canvas = storedCanvas;
+    var ctx = canvas.getContext("2d");
+    ctx.clearRect((n*150), 0, 150, 150);
+
+    ctx.drawImage(frameView, (n*150), 0, 150, 150);
+};
 
 var imageStored = false;
 var cameraLoaded = false;
@@ -1825,6 +1952,21 @@ var drawImage = function(canvas) {
             drawGrid(ctx);
         }
 
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#000";
+
+        ctx.beginPath();
+        ctx.moveTo(0, 150);
+        ctx.lineTo(150, 150);
+        if (fullscreenEnabled)
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(75, 0);
+        ctx.lineTo(75, 300);
+        if (fullscreenEnabled)
+        ctx.stroke();
+
         ctx0.restore();
         ctx1.restore();
     }
@@ -1947,12 +2089,19 @@ var drawGrid = function(ctx) {
         //console.log(x, y);
     }
 
-    if (!cameraOn) {
+    ctx.strokeStyle = "#000";
     ctx.beginPath();
-    ctx.arc(7*(150/15)+(150/30), 15*(150/15), (150/60), 0,
-    (Math.PI*2));
-    ctx.fill();
-    }
+    //ctx.arc(7*(150/15)+(150/30), 15*(150/15), (150/60), 0,
+    //(Math.PI*2));
+    //ctx.fill();
+    ctx.moveTo(7*(150/15), (15*(150/15)));
+    ctx.lineTo(8*(150/15), (15*(150/15)));
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo((7*(150/15))+(150/30), (15*(150/15))-(150/30));
+    ctx.lineTo((7*(150/15))+(150/30), (15*(150/15))+(150/30));
+    ctx.stroke();
 
     //ctx.fillText(text, 75, 150);
 };
@@ -2439,7 +2588,7 @@ if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and 
 
 var backgroundMode = false;
 document.addEventListener(visibilityChange, function(){
-    backgroundMode = !backgroundMode;
+    //backgroundMode = !backgroundMode;
     if (backgroundMode) {
         console.log("backgroundMode: "+backgroundMode);
     }

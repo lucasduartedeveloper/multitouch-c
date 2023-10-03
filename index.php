@@ -17,7 +17,13 @@ $style = [
     1 => "css/animate.css"
 ];
 
-$thirdpart_script = [];
+$thirdpart_script = [
+    0 => "script/thirdpart/three.min.js",
+    1 => "script/thirdpart/OBJLoader.min.js",
+    2 => "script/thirdpart/OrbitControls.js",
+    3 => "script/thirdpart/csg-lib.js",
+    4 => "script/thirdpart/three-csg.js"
+];
 
 $script = [
     0 => "script/camera-helper.js",
@@ -25,7 +31,9 @@ $script = [
     2 => "script/math-helper.js",
     3 => "script/gyro-helper.js",
     4 => "script/mic-helper.js",
-    5 => "script/remote-calendar.js"
+    5 => "script/texture-helper.js",
+    6 => "script/threejs-view.js",
+    7 => "script/remote-calendar.js"
 ];
 
 $module = [];
