@@ -38,7 +38,8 @@ var load3D = function(ar) {
 
     scene = new THREE.Scene();
     //scene.background = null;
-    scene.background = new THREE.Color("#000"); 
+    //scene.background = new THREE.Color("#fff");
+    scene.background = new THREE.Color("#000");
 
     light = new THREE.PointLight(
         lightParams.color,
@@ -179,27 +180,62 @@ var load3D = function(ar) {
     plane.loadTextureEx(
     "img/interleaved-texture-0.png?rnd="+rnd, 4, 4);
 
+    var geometry = new THREE.SphereGeometry( 0.2, 32 ); 
+    var material = new THREE.MeshBasicMaterial( {
+        color: 0xFFFFFF
+    } );
+    sphere = new THREE.Mesh(geometry, material ); 
+    scene.add( sphere );
+
+    sphere.position.x = 0;
+    sphere.position.y = 2.5;
+    sphere.position.z = 0;
+
     var c = { x: 0, y: 0 };
     var p = { x: 0, y: -5 };
     var angle = (360/numSides);
+
+    virtualCameraArr = [];
     framePlaneArr = [];
+    // Create the texture that will store our result 
+    bufferTexture = 
+    new THREE.WebGLRenderTarget(150, 300, { 
+        minFilter: THREE.LinearFilter, 
+        magFilter: THREE.NearestFilter 
+    });
+
     for (var n = 0; n < numSides; n++) {
-        var rp = _rotate2d(c, p, (n*angle));
+        var rp0 = _rotate2d(c, p, (n*angle));
+        var w = (n+(numSides/2)) < numSides ? (n+(numSides/2)) :  
+        (n+(numSides/2)) - numSides;
+        var rp1 = _rotate2d(c, p, (n*angle));
+
+        var virtualCamera2 = new THREE.PerspectiveCamera( 
+            cameraParams.fov, 
+            cameraParams.aspectRatio, 
+            cameraParams.near, 
+            cameraParams.far 
+        );
+        virtualCamera2.position.set(rp0.x, 2.5, rp0.y);
+        virtualCamera2.lookAt(rp1.x, 2.5, rp1.y);
+        virtualCameraArr.push(virtualCamera2);
 
         var geometry = new THREE.PlaneGeometry( 2.5, 5 ); 
         var material = new THREE.MeshStandardMaterial( {
-            side: THREE.DoubleSide
+            //side: THREE.DoubleSide
             //color: 0xffff00 
         } );
         framePlane = new THREE.Mesh(geometry, material ); 
         scene.add( framePlane );
         framePlane.castShadow = true;
 
-        framePlane.position.x = rp.x;
+        framePlane.position.x = rp0.x;
         framePlane.position.y = 2.5;
-        framePlane.position.z = rp.y;
-        framePlane.rotation.y = -(Math.PI)+(n*((Math.PI/4)));
+        framePlane.position.z = rp0.y;
+        framePlane.rotation.y = (n*((Math.PI/4)));
+        //framePlane.rotateX(-(Math.PI/4));
 
+        framePlane.loadTexture("img/texture-"+(n)+".png");
         framePlaneArr.push(framePlane);
     }
 
@@ -232,6 +268,8 @@ var load3D = function(ar) {
 
         controls.update();
         renderer.render( scene, virtualCamera );
+
+        updateCameras();
     };
     //animateThreejs();
 }
@@ -245,7 +283,30 @@ var pauseAnimation = function() {
     render = false;
 };
 
-var canTexture = true;
+var updateCameras = function() {
+    for (var n = 0; n < numSides; n++) {
+         var renderer2 = renderer;
+         var virtualCamera2 = virtualCameraArr[n];
+
+         // Render onto our off-screen texture 
+         renderer2.render(scene, virtualCamera, bufferTexture);
+
+         //framePlaneArr[n].material.color = getRandomColor();
+
+         framePlaneArr[n].material.map = bufferTexture;
+         framePlaneArr[n].material.needsUpdate = true;
+    }
+};
+
+var getRandomColor = function() {
+    var red = Math.floor(Math.random()*256);
+    var green = Math.floor(Math.random()*256);
+    var blue = Math.floor(Math.random()*256);
+
+    return new THREE.Color(red, green, blue);
+};
+
+var canTexture = false;
 
 THREE.Object3D.prototype.loadTexture = 
 function(url, callback, type="D") {
