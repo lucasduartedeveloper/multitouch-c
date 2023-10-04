@@ -20,6 +20,12 @@ var load3D = function(ar) {
     // default THREE.PCFShadowMap
     renderer.setSize(500, 1000);
 
+    renderer2 = new THREE.WebGLRenderer({ alpha: true, antialias: false, preserveDrawingBuffer: true });
+    renderer2.shadowMap.enabled = true;
+    renderer2.shadowMap.type = THREE.PCFSoftShadowMap; 
+    // default THREE.PCFShadowMap
+    renderer2.setSize(500, 1000);
+
     cameraParams.aspectRatio = ar;
 
     renderer.enable3d = 1;
@@ -40,6 +46,9 @@ var load3D = function(ar) {
     //scene.background = null;
     //scene.background = new THREE.Color("#fff");
     scene.background = new THREE.Color("#000");
+
+    bufferScene = new THREE.Scene();
+    bufferScene.background = new THREE.Color("#0f0");
 
     light = new THREE.PointLight(
         lightParams.color,
@@ -289,7 +298,8 @@ var updateCameras = function() {
          var virtualCamera2 = virtualCameraArr[n];
 
          // Render onto our off-screen texture 
-         renderer2.render(scene, virtualCamera, bufferTexture);
+         renderer2.render(scene, 
+         virtualCamera, bufferTexture);
 
          //framePlaneArr[n].material.color = getRandomColor();
 

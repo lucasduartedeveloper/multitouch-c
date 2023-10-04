@@ -437,14 +437,14 @@ $(document).ready(function() {
     };
 
     effectList = 
-    [ "split-x a", "split-x b", "split-y", "striped x", "striped y", 
+    [ "default", "split-x a", "split-x b", "split-y", "striped x", "striped y", 
     "striped both", "remote", "pinch-out", "recolor", "3D" ];
 
     effectView = document.createElement("span");
     effectView.style.position = "absolute";
     effectView.style.background = "#fff";
     effectView.style.color = "#000";
-    effectView.innerText = effectList[effect];
+    effectView.innerText = effectList[effect+1];
     effectView.style.lineHeight = "50px";
     effectView.style.fontSize = "15px";
     effectView.style.fontWeight = "900";
@@ -462,8 +462,8 @@ $(document).ready(function() {
 
     effectView.onclick = function() {
         var limit = remoteCameraConnected ? 7 : 8;
-        effect = (effect+1) <= limit ? (effect+1) : 0;
-        effectView.innerText = effectList[effect];
+        effect = (effect+1) <= limit ? (effect+1) : -1;
+        effectView.innerText = effectList[effect+1];
 
         if (effect == 7) 
         snakeColor = "#555";
@@ -1946,6 +1946,10 @@ var drawImage = function(canvas) {
             case 9:
                 anaglyph(ctx, ctx0, ctx1);
                 break;
+            default:
+                ctx.drawImage(frameView0, 0, 0, 150, 300);
+                ctx.drawImage(frameView1, 0, 0, 150, 300);
+                break;
         }
 
         if (cameraOn && gridEnabled) {
@@ -2106,7 +2110,7 @@ var drawGrid = function(ctx) {
     //ctx.fillText(text, 75, 150);
 };
 
-var effect = 0;
+var effect = -1;
 
 var splitscreen = function(ctx) {
     ctx.drawImage(frameView0, 
