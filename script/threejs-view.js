@@ -31,10 +31,10 @@ var load3D = function(ar) {
     renderer.enable3d = 1;
     renderer.domElement.style.position = "absolute";
     renderer.domElement.style.display = "none";
-    renderer.domElement.style.left = (0)+"px";
-    renderer.domElement.style.top = (0)+"px";
-    renderer.domElement.style.width = (sw)+"px";
-    renderer.domElement.style.height = (sh)+"px";
+    renderer.domElement.style.left = ((sw/2)-75)+"px";
+    renderer.domElement.style.top = ((sh/2)-150)+"px";
+    renderer.domElement.style.width = (150)+"px";
+    renderer.domElement.style.height = (300)+"px";
     //renderer.domElement.style.border = "1px solid #fff";
     //renderer.domElement.style.borderRadius = "50%";
     //renderer.domElement.style.scale = "0.8";
@@ -43,9 +43,9 @@ var load3D = function(ar) {
     document.body.appendChild( renderer.domElement ); 
 
     scene = new THREE.Scene();
-    //scene.background = null;
+    scene.background = null;
     //scene.background = new THREE.Color("#fff");
-    scene.background = new THREE.Color("#000");
+    //scene.background = new THREE.Color("#000");
 
     bufferScene = new THREE.Scene();
     bufferScene.background = new THREE.Color("#0f0");
@@ -174,79 +174,38 @@ var load3D = function(ar) {
     axisZend.position.z = -5;
     axisZend.rotation.x = -(Math.PI/2);
 
-    var geometry = new THREE.PlaneGeometry( 15, 15 ); 
-    var material = new THREE.MeshStandardMaterial( {
-        //color: 0xffff00 
-    } );
-    plane = new THREE.Mesh(geometry, material ); 
-    scene.add( plane );
-    plane.receiveShadow = true;
-
-    plane.position.y = 0;
-    plane.rotation.x = -(Math.PI/2);
-
-    var rnd = Math.random();
-    plane.loadTextureEx(
-    "img/interleaved-texture-0.png?rnd="+rnd, 4, 4);
-
-    var geometry = new THREE.SphereGeometry( 0.2, 32 ); 
-    var material = new THREE.MeshBasicMaterial( {
-        color: 0xFFFFFF
-    } );
-    sphere = new THREE.Mesh(geometry, material ); 
-    scene.add( sphere );
-
-    sphere.position.x = 0;
-    sphere.position.y = 2.5;
-    sphere.position.z = 0;
-
-    var c = { x: 0, y: 0 };
-    var p = { x: 0, y: -5 };
-    var angle = (360/numSides);
-
-    virtualCameraArr = [];
-    framePlaneArr = [];
-    // Create the texture that will store our result 
-    bufferTexture = 
-    new THREE.WebGLRenderTarget(150, 300, { 
-        minFilter: THREE.LinearFilter, 
-        magFilter: THREE.NearestFilter 
+    var cps = new Array(6).fill().map((_, idx, arr) => {
+    var init = -(arr.length - 1);
+    return new THREE.Vector3(
+        init + idx * 2,
+        Math.random() < 0.5 ? -1 : 1,
+        -init - idx  * 2
+    );
     });
+    var curve = new THREE.CatmullRomCurve3(cps);
 
-    for (var n = 0; n < numSides; n++) {
-        var rp0 = _rotate2d(c, p, (n*angle));
-        var w = (n+(numSides/2)) < numSides ? (n+(numSides/2)) :  
-        (n+(numSides/2)) - numSides;
-        var rp1 = _rotate2d(c, p, (n*angle));
+    var shape = new THREE.Shape()
+shape.absarc(0, 0, 1, 0, Math.PI * 2);
+    shape.holes.push(new THREE.Path().absarc(0, 0, 0.5, 0, Math.PI * 2, false));
+    var g = new THREE.ExtrudeGeometry(shape, {steps: 100, bevelEnabled: false, extrudePath: curve});
+    var m = new THREE.MeshLambertMaterial({color: "aqua"});
+    var o = new THREE.Mesh(g, m);
+    //scene.add(o);
 
-        var virtualCamera2 = new THREE.PerspectiveCamera( 
-            cameraParams.fov, 
-            cameraParams.aspectRatio, 
-            cameraParams.near, 
-            cameraParams.far 
-        );
-        virtualCamera2.position.set(rp0.x, 2.5, rp0.y);
-        virtualCamera2.lookAt(rp1.x, 2.5, rp1.y);
-        virtualCameraArr.push(virtualCamera2);
+    loadOBJ("img/untitled-99.obj", function(object) {
+        object.position.x = 0;
+        object.position.y = 2.5;
+        object.position.z = 0;
 
-        var geometry = new THREE.PlaneGeometry( 2.5, 5 ); 
+        object.castShadow = true;
+        object.children[0].castShadow = true;
+
         var material = new THREE.MeshStandardMaterial( {
-            //side: THREE.DoubleSide
-            //color: 0xffff00 
+            color: 0xffffff
         } );
-        framePlane = new THREE.Mesh(geometry, material ); 
-        scene.add( framePlane );
-        framePlane.castShadow = true;
 
-        framePlane.position.x = rp0.x;
-        framePlane.position.y = 2.5;
-        framePlane.position.z = rp0.y;
-        framePlane.rotation.y = (n*((Math.PI/4)));
-        //framePlane.rotateX(-(Math.PI/4));
-
-        framePlane.loadTexture("img/texture-"+(n)+".png");
-        framePlaneArr.push(framePlane);
-    }
+        scene.add(object);
+    });
 
     virtualCamera.position.set(0, 2.5, 0);
     virtualCamera.lookAt(0, 2.5, -5);
@@ -277,8 +236,6 @@ var load3D = function(ar) {
 
         controls.update();
         renderer.render( scene, virtualCamera );
-
-        updateCameras();
     };
     //animateThreejs();
 }
@@ -290,22 +247,6 @@ var startAnimation = function() {
 
 var pauseAnimation = function() {
     render = false;
-};
-
-var updateCameras = function() {
-    for (var n = 0; n < numSides; n++) {
-         var renderer2 = renderer;
-         var virtualCamera2 = virtualCameraArr[n];
-
-         // Render onto our off-screen texture 
-         renderer2.render(scene, 
-         virtualCamera, bufferTexture);
-
-         //framePlaneArr[n].material.color = getRandomColor();
-
-         framePlaneArr[n].material.map = bufferTexture;
-         framePlaneArr[n].material.needsUpdate = true;
-    }
 };
 
 var getRandomColor = function() {

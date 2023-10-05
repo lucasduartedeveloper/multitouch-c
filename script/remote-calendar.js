@@ -648,7 +648,7 @@ $(document).ready(function() {
     toggleView.onclick = function() {
        updateImage = !updateImage;
        if (!updateImage) {
-           drawSide(selectedSize);
+           drawSide(selectedSide);
        }
     };
 
@@ -674,7 +674,7 @@ $(document).ready(function() {
     document.body.appendChild(downloadView);
 
     downloadView.onclick = function() {
-        var dataURL = storedCanvas.toDataURL();
+        var dataURL = frameView.toDataURL();
         var hiddenElement = document.createElement('a');
         hiddenElement.href = dataURL;
         hiddenElement.target = "_blank";
@@ -842,7 +842,12 @@ $(document).ready(function() {
     spaceCanvas.height = 150;
 
     frameView.onclick = function(e) {
-        if (spaceGame) {
+        if (!updateImage) {
+            var x = e.clientX - ((sw/2)-75);
+            var y = e.clientY - ((sh/2)-150);
+            updateColor(x, y);
+        }
+        else if (spaceGame) {
             var n = Math.floor((e.clientX-((sw/2)-75))/(150/3));
             select(n);
         }
@@ -1090,8 +1095,8 @@ $(document).ready(function() {
             frameViewContainer.style.background = "#000";
             frameView.style.left = ((width-150)/2)+"px";
             frameView.style.top = ((height-300)/2)+"px";
-            frameView.style.clipPath = 
-            "ellipse(75px 75px at 50% 50%)";
+            //frameView.style.clipPath = 
+            //"ellipse(75px 75px at 50% 50%)";
             frameView.style.scale = "2";
 
             frameViewContainer.appendChild(videoStream);
@@ -1121,7 +1126,7 @@ $(document).ready(function() {
 
     threejsView.src = "img/threejs-logo.png";
 
-    load3D((sw/sh));
+    load3D(0.5);
     threejsView.onclick = function() {
         threejsEnabled = !threejsEnabled;
         renderer.domElement.style.display = threejsEnabled ? 
@@ -1136,6 +1141,31 @@ $(document).ready(function() {
     storedCanvas.width = (150*numSides);
     storedCanvas.height = 150;
 
+    imageLoaded = false;
+    imageView = document.createElement("img");
+
+    imageView.onload = function() {
+        imageLoaded = true;
+    };
+
+    var rnd = Math.random();
+    imageView.src = "img/icon-0.png?rnd="+rnd;
+
+    colorView = document.createElement("canvas");
+    colorView.style.position = "absolute";
+    colorView.style.display = "initial";
+    colorView.width = 18;
+    colorView.height = 9;
+    colorView.style.left = ((sw/2)-150)+"px";
+    colorView.style.top = ((sh/2)-175)+"px";
+    colorView.style.width = (50)+"px";
+    colorView.style.height = (25)+"px"; 
+    colorView.style.outline = "1px solid #fff"; 
+    colorView.style.zIndex = "15";
+    document.body.appendChild(colorView);
+
+    colorView.getContext("2d").imageSmoothingEnabled = true;
+
     drawSides();
 
     drawContrast();
@@ -1148,6 +1178,107 @@ $(document).ready(function() {
     //snakeGameLoop();
     animate();
 });
+
+var updateColor = function(x, y) {
+    var ctx = frameView.getContext("2d");
+
+    var ctxColor = colorView.getContext("2d");
+    ctxColor.drawImage(frameView, x-4, y-4, 9, 9, 0, 0, 9, 9);
+
+    var imageData = ctxColor.getImageData(0, 0, 9, 9);
+    var imageArray = imageData.data;
+
+    var newArray = new Uint8ClampedArray(imageArray);
+    for (var n = 0; n < imageArray.length; n += 4) {
+        var filter = (1/(255*3))*(color.r + color.g + color.b);
+        var sum = (1/(255*3))*
+        (newArray[n] + newArray[n+1] + newArray[n+2]);
+
+        if (Math.abs(sum-filter) < 0.25) {
+            newArray[n] = 255;
+            newArray[n+1] = 0;
+            newArray[n+2] = 255;
+        }
+    }
+
+    var newImageData = new ImageData(newArray, 
+    imageData.width, imageData.height);
+
+    ctxColor.putImageData(newImageData, 0, 0);
+
+    var n = ((4*9)+4)*4;
+
+    color = {
+       r: imageArray[n], g: imageArray[n+1], b: imageArray[n+2]
+    };
+
+    ctxColor.fillStyle = "rgba("+color.r+","+color.g+","+color.b+",1)";
+    ctxColor.fillRect(9, 0, 18, 18);
+};
+
+var position = { x: 0, y: 0 };
+var color = { r: 0, g: 0, b: 0 };
+var locateTile = function() {
+    var ctx = frameView.getContext("2d");
+
+    var imageData = ctx.getImageData(0, 0, 150, 300);
+    var imageArray = imageData.data;
+
+    var polygon = [];
+    var newArray = new Uint8ClampedArray(imageArray);
+    for (var n = 0; n < imageArray.length; n += 4) {
+        var filter = (1/(255*3))*(color.r + color.g + color.b);
+        var sum = (1/(255*3))*
+        (newArray[n] + newArray[n+1] + newArray[n+2]);
+
+        if (Math.abs(sum-filter) < 0.25) {
+            var x = ((n/4)%150);
+            var y = Math.floor((n/4)/150);
+            polygon.push({
+                x: x,
+                y: y
+            });
+
+            /*newArray[n] = 255;
+            newArray[n+1] = 0;
+            newArray[n+2] = 255;*/
+        }
+    };
+
+    var minX = 150;
+    var maxX = 0;
+    var minY = 300;
+    var maxY = 0;
+    for (var n = 0; n < polygon.length; n++) {
+        minX = polygon[n].x < minX ? polygon[n].x : minX;
+        maxX = polygon[n].x > maxX ? polygon[n].x : maxX;
+        minY = polygon[n].y < minY ? polygon[n].y : minY;
+        maxY = polygon[n].y > maxY ? polygon[n].y : maxY;
+    }
+
+    var c = {
+        width: (maxX - minX),
+        height: (maxY - minY),
+        x: ((maxX - minX)/2),
+        y: ((maxY - minY)/2)
+    };
+    position = c;
+    //console.log(minX, maxX, minY, maxY);
+    //console.log(position);
+
+    var newImageData = new ImageData(newArray, 
+    imageData.width, imageData.height);
+
+    ctx.putImageData(newImageData, 0, 0);
+
+    if (imageLoaded) {
+        var r = (imageView.width/imageView.height);
+        var width = (c.width)/2;
+        var height = (width*r);
+        ctx.drawImage(imageView, c.x-(width/2), c.y-(height/2),
+        width, height);
+    }
+};
 
 var selectedSide = 0;
 var numSides = 8;
@@ -1962,14 +2093,16 @@ var drawImage = function(canvas) {
         ctx.beginPath();
         ctx.moveTo(0, 150);
         ctx.lineTo(150, 150);
-        if (fullscreenEnabled)
-        ctx.stroke();
+        //if (fullscreenEnabled)
+        //ctx.stroke();
 
         ctx.beginPath();
         ctx.moveTo(75, 0);
         ctx.lineTo(75, 300);
-        if (fullscreenEnabled)
-        ctx.stroke();
+        //if (fullscreenEnabled)
+        //ctx.stroke();
+
+        locateTile();
 
         ctx0.restore();
         ctx1.restore();
