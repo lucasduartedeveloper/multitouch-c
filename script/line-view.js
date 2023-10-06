@@ -227,12 +227,15 @@ var updateInfo = function(frameCount, readings) {
 };
 
 var bitCount = 8;
-var line = [];
+var lineX = [];
+var lineY = [];
 
 var createLine = function() {
     for (var n = 0; n < bitCount; n++) {
         var rnd = Math.floor(Math.random()*2);
-        line[n] = rnd;
+        lineX[n] = rnd;
+        var rnd = Math.floor(Math.random()*2);
+        lineY[n] = rnd;
     }
 };
 
@@ -274,6 +277,58 @@ var xor = function(x, y) {
     if (x == 1 || y == 1) return 1;
 };
 
+var xorArr = function(arrX, arrY) {
+    var result = [ ...arrX ];
+    for (var n = 0; n < bitCount; n++) {
+        result[n] = xor(result[n], arrY[n]);
+    }
+    return result;
+};
+
+var and = function(x, y) {
+    if (x == 1 && y == 1) return 1;
+    else return 0;
+};
+
+var andArr = function(arrX, arrY) {
+    var result = [ ...arrX ];
+    for (var n = 0; n < bitCount; n++) {
+        result[n] = and(result[n], arrY[n]);
+    }
+    return result;
+};
+
+var halfSum = function(arrX, arrY) {
+    var xor = xorArr(arrX, arrY);
+    var carry = andArr(arrX, arrY);
+    var result = {
+        xor: xor,
+        carry: carry
+    };
+    return result;
+};
+
+var binarySum = function(arrX, arrY) {
+    console.log(arrX.join(" ") + " - " + byteToInt(arrX));
+    console.log(arrY.join(" ") + " - " + byteToInt(arrY));
+
+    var half = halfSum(arrX, arrY);
+    console.log(half.xor.join(" ") + " - " + byteToInt(half.xor));
+    console.log(half.carry.join(" ") + " - " + byteToInt(half.carry));
+
+    var full = halfSum(half.xor, half.carry);
+    console.log(full.xor.join(" ") + " - " + byteToInt(full.xor));
+    console.log(full.carry.join(" ")  + " - " + byteToInt(full.carry));
+
+    console.log("-----");
+
+    var result = {
+        half: half,
+        full: full
+    };
+    return result;
+};
+
 var size = 10;
 var drawImage = function() {
      var ctx = canvas.getContext("2d");
@@ -287,21 +342,22 @@ var drawImage = function() {
      ctx.strokeStyle = "#000";
 
      ctx.font = "10px sans serif";
-     ctx.textAlign = "center";
+     ctx.textAlign = "left";
      ctx.textBaseline = "middle";
-     ctx.fillText(byteToInt(line), 
-     ((sw/2)+((bitCount/2)*(size*2))+(size)), 
+     ctx.fillText(byteToInt(lineX), 
+     ((sw/2)+((bitCount/2)*(size*2))+(size*2)), 
      ((sh/4)*3));
 
+     ctx.fillStyle = "lightblue";
      for (var n = 0; n < bitCount; n++) {
          ctx.beginPath();
          ctx.rect(
          ((sw/2)-((bitCount/2)*(size*2))+((n*2)*size)), 
          (((sh/4)*3)-(size/2)), 
          size, size);
-         ctx.stroke();
-         if (line[n] == 1)
+         if (lineX[n] == 1)
          ctx.fill();
+         ctx.stroke();
      }
 
      for (var n = 0; n < bitCount; n++) {
@@ -320,9 +376,9 @@ var drawImage = function() {
          ((sw/2)-((bitCount/2)*(size*2))+((n*2)*size))+size, 
          (((sh/4)*3)-(size*4))-(size/2), 
          size, size);
-         ctx.stroke();
-         if (line[n] == 0)
+         if (lineY[n] == 1)
          ctx.fill();
+         ctx.stroke();
      }
 
      for (var n = 0; n < bitCount; n++) {
@@ -336,23 +392,89 @@ var drawImage = function() {
          ctx.stroke();
      }
 
-     var revLine = reverse(line);
-
+     var sumArr = binarySum(lineX, lineY);
      for (var n = 0; n < bitCount; n++) {
          ctx.beginPath();
          ctx.rect(
          ((sw/2)-((bitCount/2)*(size*2))+(n*(size*2))), 
          (((sh/4)*3)-(size*8))-(size), 
          (size*2), (size*2));
-         ctx.stroke();
-         if (xor(line[n], revLine[n]) == 1)
+         if (sumArr.half.xor[n] == 1)
          ctx.fill();
+         ctx.stroke();
      }
 
+     for (var n = 0; n < bitCount; n++) {
+         ctx.beginPath();
+         ctx.rect(
+         ((sw/2)-((bitCount/2)*(size*2))+((n*2)*size))+size, 
+         (((sh/4)*3)-(size*9))-(size), 
+         size, size);
+         if (sumArr.half.carry[n] == 1)
+         ctx.fill();
+         ctx.stroke();
+     }
+
+     for (var n = 0; n < bitCount; n++) {
+         ctx.beginPath();
+         ctx.moveTo(
+         ((sw/2)-((bitCount/2)*(size*2))+((n*2)*size)+(size/2)), 
+         (((sh/4)*3)-(size*8)-(size)));
+         ctx.lineTo(((sw/2)-((bitCount/2)*(size*2))+((n*2)*size)+(size/2)), 
+         (((sh/4)*3)-(size*16)+(size)));
+         ctx.stroke();
+     }
+
+     var sumArr = binarySum(lineX, lineY);
+     for (var n = 0; n < bitCount; n++) {
+         ctx.beginPath();
+         ctx.rect(
+         ((sw/2)-((bitCount/2)*(size*2))+(n*(size*2))), 
+         (((sh/4)*3)-(size*16))-(size), 
+         (size*2), (size*2));
+         if (sumArr.full.xor[n] == 1)
+         ctx.fill();
+         ctx.stroke();
+     }
+
+     for (var n = 0; n < bitCount; n++) {
+         ctx.beginPath();
+         ctx.moveTo(
+         ((sw/2)-((bitCount/2)*(size*2))+((n*2)*size)+(size/2))+(size), 
+         (((sh/4)*3)-(size*8)-(size*2)));
+         ctx.lineTo(((sw/2)-((bitCount/2)*(size*2))+((n*2)*size)+(size/2))+(size), 
+         (((sh/4)*3)-(size*16)+(size)));
+         ctx.stroke();
+     }
+
+     ctx.fillStyle = "#000";
+
      ctx.font = "10px sans serif";
-     ctx.textAlign = "center";
+     ctx.textAlign = "left";
      ctx.textBaseline = "middle";
-     ctx.fillText(byteToInt(revLine), 
-     ((sw/2)+((bitCount/2)*(size*2))+(size)), 
+     ctx.fillText(byteToInt(lineY), 
+     ((sw/2)+((bitCount/2)*(size*2))+(size*2)), 
      ((sh/4)*3)-(size*4));
+
+     var sum = (byteToInt(lineX)+byteToInt(lineY));
+     ctx.font = "10px sans serif";
+     ctx.textAlign = "left";
+     ctx.textBaseline = "middle";
+     ctx.fillText(byteToInt(sumArr.half.xor), 
+     ((sw/2)+((bitCount/2)*(size*2))+(size*2)), 
+     ((sh/4)*3)-(size*8));
+
+     ctx.font = "10px sans serif";
+     ctx.textAlign = "left";
+     ctx.textBaseline = "middle";
+     ctx.fillText(byteToInt(sumArr.half.carry), 
+     ((sw/2)+((bitCount/2)*(size*2))+(size*2)), 
+     ((sh/4)*3)-(size*8)-(size*2));
+
+     ctx.font = "10px sans serif";
+     ctx.textAlign = "left";
+     ctx.textBaseline = "middle";
+     ctx.fillText(byteToInt(sumArr.full.xor)+" / "+sum, 
+     ((sw/2)+((bitCount/2)*(size*2))+(size*2)), 
+     ((sh/4)*3)-(size*16));
 };
