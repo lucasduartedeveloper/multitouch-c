@@ -250,8 +250,10 @@ var animate = function() {
 
 var width = (sw/2);
 var recoil = 1;
+var curveArr = [];
 var scaleArr = [];
 var fillArray = function() {
+    curveArr = [];
     scaleArr = [];
     for (var n = 0; n < width; n++) {
         var c = { x: 0, y: 0 };
@@ -259,15 +261,23 @@ var fillArray = function() {
         var rp0 = _rotate2d(c, p0, -(n*(90/width)));
         var p1 = { x: -1, y: 0 };
         var rp1 = _rotate2d(c, p1, -(n*(90/width)));
+        var cp0 = _rotate2d(c, p0, -(n*(180/width)));
+        var cp1 = _rotate2d(c, p1, -(n*(180/width)));
         var rp = {
             x: rp1.x*-1,
             y: rp0.y*-1
         };
         rp.y = (rp.y * recoil);
+        var cp = {
+            x: cp1.x,
+            y: cp0.y*-1
+        };
+        cp.y = (cp.y * recoil);
         var value = recoil > 0 ? 
         1+(Math.abs(rp.y)) : 
         1-(Math.abs(rp.y));
         rp.value = value;
+        curveArr.push(cp);
         scaleArr.push(rp);
     }
 };
@@ -297,6 +307,24 @@ var drawImage = function() {
 
      ctx.lineWidth = 1;
      ctx.strokeStyle = "#000";
+     ctx.beginPath();
+     ctx.moveTo((sw/2)-((width/4)*2)-((width/8)*curveArr[0].x), 
+     ((sh/2)+(width*1.5))-((width/8)*(curveArr[0].y/3)));
+     for (var n = 1; n < curveArr.length; n++) {
+         ctx.lineTo((sw/2)-((width/4)*2)-((width/8)*curveArr[n].x), 
+         ((sh/2)+(width*1.5))-((width/8)*(curveArr[n].y/3)));
+     }
+     ctx.stroke();
+
+     ctx.beginPath();
+     ctx.moveTo((sw/2)-(width/4)-((width/8)*curveArr[0].x), 
+     ((sh/2)+(width*1.5))-((width/8)*(curveArr[0].y/2)));
+     for (var n = 1; n < curveArr.length; n++) {
+         ctx.lineTo((sw/2)-(width/4)-((width/8)*curveArr[n].x), 
+         ((sh/2)+(width*1.5))-((width/8)*(curveArr[n].y/2)));
+     }
+     ctx.stroke();
+
      ctx.beginPath();
      ctx.moveTo((sw/2)-((width/8)*scaleArr[0].x), 
      ((sh/2)+(width*1.5))-((width/8)*scaleArr[0].y));
