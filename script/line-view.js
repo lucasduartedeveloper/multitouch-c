@@ -231,6 +231,8 @@ var lineX = [];
 var lineY = [];
 
 var createLine = function() {
+    lineX = [];
+    lineY = [];
     for (var n = 0; n < bitCount; n++) {
         var rnd = Math.floor(Math.random()*2);
         lineX[n] = rnd;
@@ -336,6 +338,21 @@ var drawImage = function() {
 
      ctx.fillStyle = "#fff";
      ctx.fillRect(0, 0, sw, sh);
+
+     ctx.lineWidth = 1;
+     ctx.strokeStyle = "#000";
+     for (var n = 0; n <= 16; n++) {
+         ctx.beginPath();
+         ctx.moveTo(((sw/2)-(16*(size/2)))+(n*size), ((sh/2)-(40*(size/2))));
+         ctx.lineTo(((sw/2)-(16*(size/2)))+(n*size), ((sh/2)-(40*(size/2)))+(16*size));
+         ctx.stroke();
+
+         ctx.beginPath();
+         ctx.moveTo(((sw/2)-(16*(size/2))), ((sh/2)-(40*(size/2)))+(n*size));
+         ctx.lineTo(((sw/2)+(16*(size/2))), (sh/2)-(40*(size/2))
+         +(n*size));
+         ctx.stroke();
+     }
 
      ctx.lineWidth = 1;
      ctx.fillStyle = "#000";
