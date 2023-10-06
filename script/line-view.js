@@ -86,6 +86,17 @@ $(document).ready(function() {
     toggleView.style.zIndex = "15";
     document.body.appendChild(toggleView);
 
+    toggleView.onclick = function() {
+        updateImage = !updateImage;
+        if (updateImage)
+        if (cameraOn) {
+            stopCamera();
+        }
+        else {
+            startCamera();
+        }
+    };
+
     deviceList = [ "front", "back", "back1", "back2", "back3" ];
     deviceView = document.createElement("span");
     deviceView.style.position = "absolute";
@@ -180,6 +191,10 @@ $(document).ready(function() {
         airResistanceView.value;
     };
 
+    clip = document.createElement("canvas");
+    clip.width = width;
+    clip.height = width;
+
     startTime = 0;
     readings = 0;
     motion = true;
@@ -199,15 +214,11 @@ $(document).ready(function() {
 
         var accX = -(gyro.accX)+airResistance;
 
-        if (updateImage) {
-            position.x += accX;
-            if (position.x < (size/2))
-            position.x = (size/2);
-            if (position.x > sw-(size/2))
-            position.x = sw-(size/2);
-        }
+        if (updateImage)
+        position.x += accX;
     };
 
+    fillArray();
     animate();
 });
 
@@ -237,67 +248,105 @@ var animate = function() {
     requestAnimationFrame(animate);
 };
 
-var size = 50;
+var width = (sw/2);
+var recoil = 1;
+var scaleArr = [];
+var fillArray = function() {
+    scaleArr = [];
+    for (var n = 0; n < width; n++) {
+        var c = { x: 0, y: 0 };
+        var p0 = { x: -5, y: 0 };
+        var rp0 = _rotate2d(c, p0, -(n*(90/width)));
+        var p1 = { x: -1, y: 0 };
+        var rp1 = _rotate2d(c, p1, -(n*(90/width)));
+        var rp = {
+            x: rp1.x*-1,
+            y: rp0.y*-1
+        };
+        rp.y = (rp.y * recoil);
+        var value = recoil > 0 ? 
+        1+(Math.abs(rp.y)) : 
+        1-(Math.abs(rp.y));
+        rp.value = value;
+        scaleArr.push(rp);
+    }
+};
+
 var drawImage = function() {
      var ctx = canvas.getContext("2d");
-     ctx.clearRect(0, 0, sw, sh);
+     ctx.clearRect(0, 0, sw, sw);
+
+     ctx.fillStyle = "#fff";
+     ctx.fillRect(0, 0, sw, sh);
+
+     ctx.lineWidth = 1;
+     ctx.strokeStyle = "lightblue";
+     var size = (sw/15);
+     for (var y = 0; y < size; y++) {
+         ctx.beginPath();
+         ctx.moveTo((y*size), 0);
+         ctx.lineTo((y*size), sh);
+         ctx.stroke();
+         for (var x = 0; x < (sh/size); x++) {
+             ctx.beginPath();
+             ctx.moveTo(0, (x*size)+(size/2));
+             ctx.lineTo(sw, (x*size)+(size/2));
+             ctx.stroke();
+         }
+     }
 
      ctx.lineWidth = 1;
      ctx.strokeStyle = "#000";
-
      ctx.beginPath();
-     ctx.arc(position.x, position.y, (size/2), 0, (Math.PI*2));
+     ctx.moveTo((sw/2)-((width/8)*scaleArr[0].x), 
+     ((sh/2)+(width*1.5))-((width/8)*scaleArr[0].y));
+     for (var n = 1; n < scaleArr.length; n++) {
+         ctx.lineTo((sw/2)-((width/8)*scaleArr[n].x), 
+         ((sh/2)+(width*1.5))-((width/8)*scaleArr[n].y));
+     }
      ctx.stroke();
-
-     var end0 = position.x - (size/2);
-     ctx.beginPath();
-     ctx.moveTo(0, (sh/2));
-     ctx.lineTo(end0, (sh/2));
-     ctx.stroke();
-
-     var end1 = position.x + (size/2);
-     ctx.beginPath();
-     ctx.moveTo(sw, (sh/2));
-     ctx.lineTo(end1, (sh/2));
-     ctx.stroke();
-
-     var clip = document.createElement("canvas");
-     clip.width = size;
-     clip.height = size;
 
      var clipCtx = clip.getContext("2d");
+     clipCtx.clearRect(0, 0, sw, sw);
 
-     if (cameraOn) {
-         clipCtx.save();
-         if (deviceNo == 0) {
-             clipCtx.scale(-1, 1);
-             clipCtx.translate(-size, 0);
-         }
+     for (var n = 0; n < (width/2) ; n++) {
+        var radius = ((width/2)-n);
+        clipCtx.save();
+        clipCtx.beginPath();
+        clipCtx.arc((width/2), (width/2), radius, 0, (Math.PI*2));
+        clipCtx.clip();
 
-         var offsetX = (vw-sw)/2;
-         var offsetY = (vh-sh)/2;
+        var scale = scaleArr[n].value;
 
-         var format = {
-             left: (vw/2)-(size/2),
-             top: (vh/2)-(size/2),
-             width: size,
-             height: size
-         };
+        if (cameraOn)
+        clipCtx.drawImage(camera, 
+        ((vw/2)-((width/2)/scale)), ((vh/2)-((width/2)/scale)),
+        (width/scale), (width/scale), 
+        0, 0, width, width);
+        else
+        clipCtx.drawImage(canvas, 
+        ((sw/2)-((width/2)/scale)), ((sh/2)-((width/2)/scale)),
+        (width/scale), (width/scale), 
+        0, 0, width, width);
 
-         clipCtx.drawImage(camera, 
-         format.left, format.top, 
-         format.width, format.height,
-         0, 0, size, size);
-         clipCtx.restore();
+        clipCtx.restore();
+    }
 
-         ctx.save();
-         ctx.beginPath();
-         ctx.arc(position.x, position.y, (size/2), 0, (Math.PI*2));
-         ctx.clip();
+    ctx.drawImage(clip, 
+    ((sw/2)-(width/2)), ((sh/2)-(width/2)), width, width);
+};
 
-         if (updateCircle)
-         ctx.drawImage(clip, 
-         position.x-(size/2), position.y-(size/2), size, size);
-         ctx.restore();
-     }
+var getMiddleNumbers = function(start, end) {
+     var total = (end-start);
+     if (total % 2 != 0) 
+     throw new Error("Middle numbers not available.");
+
+     var middle0 = (start+(total/2));
+     var middle1 = ((start+(total/2))+1);
+
+     var obj = { 
+         middle0: middle0, 
+         middle1: middle1 
+     };
+     return obj;
 };
