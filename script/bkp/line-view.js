@@ -191,6 +191,10 @@ $(document).ready(function() {
         airResistanceView.value;
     };
 
+    clip = document.createElement("canvas");
+    clip.width = width;
+    clip.height = width;
+
     startTime = 0;
     readings = 0;
     motion = true;
@@ -214,7 +218,7 @@ $(document).ready(function() {
         position.x += accX;
     };
 
-    createLine();
+    fillArray();
     animate();
 });
 
@@ -224,16 +228,6 @@ var lastReadings = 0;
 var lastFrameCount = 0;
 var updateInfo = function(frameCount, readings) {
     infoView.innerText = frameCount + " " + readings;
-};
-
-var bitCount = 8;
-var line = [];
-
-var createLine = function() {
-    for (var n = 0; n < bitCount; n++) {
-        var rnd = Math.floor(Math.random()*2);
-        line[n] = rnd;
-    }
 };
 
 var frameCount = 0;
@@ -254,27 +248,40 @@ var animate = function() {
     requestAnimationFrame(animate);
 };
 
-var reverse = function() {
-    var result = [ ...line ];
-    for (var n = 0; n < bitCount; n++) {
-        result[n] = result[n] == 1 ? 0 : 1;
+var width = (sw/2);
+var recoil = 1;
+var curveArr = [];
+var scaleArr = [];
+var fillArray = function() {
+    curveArr = [];
+    scaleArr = [];
+    for (var n = 0; n < width; n++) {
+        var c = { x: 0, y: 0 };
+        var p0 = { x: -5, y: 0 };
+        var rp0 = _rotate2d(c, p0, -(n*(90/width)));
+        var p1 = { x: -1, y: 0 };
+        var rp1 = _rotate2d(c, p1, -(n*(90/width)));
+        var cp0 = _rotate2d(c, p0, -(n*(180/width)));
+        var cp1 = _rotate2d(c, p1, -(n*(180/width)));
+        var rp = {
+            x: rp1.x*-1,
+            y: rp0.y*-1
+        };
+        rp.y = (rp.y * recoil);
+        var cp = {
+            x: cp1.x,
+            y: cp0.y*-1
+        };
+        cp.y = (cp.y * recoil);
+        var value = recoil > 0 ? 
+        1+(Math.abs(rp.y)) : 
+        1-(Math.abs(rp.y));
+        rp.value = value;
+        curveArr.push(cp);
+        scaleArr.push(rp);
     }
-    return result;
 };
 
-var byteToInt = function(byteArr) {
-    var result = byteArr.join("");
-    result = parseInt(result, 2);
-    return result;
-};
-
-var xor = function(x, y) {
-    if (x == 0 && y == 0) return 0;
-    if (x == 1 && y == 1) return 0;
-    if (x == 1 || y == 1) return 1;
-};
-
-var size = 10;
 var drawImage = function() {
      var ctx = canvas.getContext("2d");
      ctx.clearRect(0, 0, sw, sw);
@@ -283,76 +290,91 @@ var drawImage = function() {
      ctx.fillRect(0, 0, sw, sh);
 
      ctx.lineWidth = 1;
-     ctx.fillStyle = "#000";
+     ctx.strokeStyle = "lightblue";
+     var size = (sw/15);
+     for (var y = 0; y < size; y++) {
+         ctx.beginPath();
+         ctx.moveTo((y*size), 0);
+         ctx.lineTo((y*size), sh);
+         ctx.stroke();
+         for (var x = 0; x < (sh/size); x++) {
+             ctx.beginPath();
+             ctx.moveTo(0, (x*size)+(size/2));
+             ctx.lineTo(sw, (x*size)+(size/2));
+             ctx.stroke();
+         }
+     }
+
+     ctx.lineWidth = 1;
      ctx.strokeStyle = "#000";
-
-     ctx.font = "10px sans serif";
-     ctx.textAlign = "center";
-     ctx.textBaseline = "middle";
-     ctx.fillText(byteToInt(line), 
-     ((sw/2)+((bitCount/2)*(size*2))+(size)), 
-     ((sh/4)*3));
-
-     for (var n = 0; n < bitCount; n++) {
-         ctx.beginPath();
-         ctx.rect(
-         ((sw/2)-((bitCount/2)*(size*2))+((n*2)*size)), 
-         (((sh/4)*3)-(size/2)), 
-         size, size);
-         ctx.stroke();
-         if (line[n] == 1)
-         ctx.fill();
+     ctx.beginPath();
+     ctx.moveTo((sw/2)-((width/4)*2)-((width/8)*curveArr[0].x), 
+     ((sh/2)+(width*1.5))-((width/8)*(curveArr[0].y/3)));
+     for (var n = 1; n < curveArr.length; n++) {
+         ctx.lineTo((sw/2)-((width/4)*2)-((width/8)*curveArr[n].x), 
+         ((sh/2)+(width*1.5))-((width/8)*(curveArr[n].y/3)));
      }
+     ctx.stroke();
 
-     for (var n = 0; n < bitCount; n++) {
-         ctx.beginPath();
-         ctx.moveTo(
-         ((sw/2)-((bitCount/2)*(size*2))+((n*2)*size)+(size/2)), 
-         (((sh/4)*3)-(size/2)));
-         ctx.lineTo(((sw/2)-((bitCount/2)*(size*2))+((n*2)*size)+(size/2)), 
-         (((sh/4)*3)-(size*8)+(size)));
-         ctx.stroke();
+     ctx.beginPath();
+     ctx.moveTo((sw/2)-(width/4)-((width/8)*curveArr[0].x), 
+     ((sh/2)+(width*1.5))-((width/8)*(curveArr[0].y/2)));
+     for (var n = 1; n < curveArr.length; n++) {
+         ctx.lineTo((sw/2)-(width/4)-((width/8)*curveArr[n].x), 
+         ((sh/2)+(width*1.5))-((width/8)*(curveArr[n].y/2)));
      }
+     ctx.stroke();
 
-     for (var n = 0; n < bitCount; n++) {
-         ctx.beginPath();
-         ctx.rect(
-         ((sw/2)-((bitCount/2)*(size*2))+((n*2)*size))+size, 
-         (((sh/4)*3)-(size*4))-(size/2), 
-         size, size);
-         ctx.stroke();
-         if (line[n] == 0)
-         ctx.fill();
+     ctx.beginPath();
+     ctx.moveTo((sw/2)-((width/8)*scaleArr[0].x), 
+     ((sh/2)+(width*1.5))-((width/8)*scaleArr[0].y));
+     for (var n = 1; n < scaleArr.length; n++) {
+         ctx.lineTo((sw/2)-((width/8)*scaleArr[n].x), 
+         ((sh/2)+(width*1.5))-((width/8)*scaleArr[n].y));
      }
+     ctx.stroke();
 
-     for (var n = 0; n < bitCount; n++) {
-         ctx.beginPath();
-         ctx.moveTo(
-         ((sw/2)-((bitCount/2)*(size*2))+((n*2)*size)+(size/2))+size,
-         (((sh/4)*3)-(size*4)-(size/2)));
-         ctx.lineTo(
-         ((sw/2)-((bitCount/2)*(size*2))+((n*2)*size)+(size/2))+size,
-         (((sh/4)*3)-(size*8)+(size)));
-         ctx.stroke();
-     }
+     var clipCtx = clip.getContext("2d");
+     clipCtx.clearRect(0, 0, sw, sw);
 
-     var revLine = reverse(line);
+     for (var n = 0; n < (width/2) ; n++) {
+        var radius = ((width/2)-n);
+        clipCtx.save();
+        clipCtx.beginPath();
+        clipCtx.arc((width/2), (width/2), radius, 0, (Math.PI*2));
+        clipCtx.clip();
 
-     for (var n = 0; n < bitCount; n++) {
-         ctx.beginPath();
-         ctx.rect(
-         ((sw/2)-((bitCount/2)*(size*2))+(n*(size*2))), 
-         (((sh/4)*3)-(size*8))-(size), 
-         (size*2), (size*2));
-         ctx.stroke();
-         if (xor(line[n], revLine[n]) == 1)
-         ctx.fill();
-     }
+        var scale = scaleArr[n].value;
 
-     ctx.font = "10px sans serif";
-     ctx.textAlign = "center";
-     ctx.textBaseline = "middle";
-     ctx.fillText(byteToInt(revLine), 
-     ((sw/2)+((bitCount/2)*(size*2))+(size)), 
-     ((sh/4)*3)-(size*4));
+        if (cameraOn)
+        clipCtx.drawImage(camera, 
+        ((vw/2)-((width/2)/scale)), ((vh/2)-((width/2)/scale)),
+        (width/scale), (width/scale), 
+        0, 0, width, width);
+        else
+        clipCtx.drawImage(canvas, 
+        ((sw/2)-((width/2)/scale)), ((sh/2)-((width/2)/scale)),
+        (width/scale), (width/scale), 
+        0, 0, width, width);
+
+        clipCtx.restore();
+    }
+
+    ctx.drawImage(clip, 
+    ((sw/2)-(width/2)), ((sh/2)-(width/2)), width, width);
+};
+
+var getMiddleNumbers = function(start, end) {
+     var total = (end-start);
+     if (total % 2 != 0) 
+     throw new Error("Middle numbers not available.");
+
+     var middle0 = (start+(total/2));
+     var middle1 = ((start+(total/2))+1);
+
+     var obj = { 
+         middle0: middle0, 
+         middle1: middle1 
+     };
+     return obj;
 };
